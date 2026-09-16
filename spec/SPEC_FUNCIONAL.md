@@ -1,8 +1,8 @@
 # Especificación Funcional — Plataforma de Confirmación de Asistencia (Feria de Promociones)
 
-> Versión: 1.0 | Fecha: 2026-09-16
+> Versión: 1.1 | Fecha: 2026-09-16 — agrega HU-12 (umbrales de descuento configurables, ADR-023) y notificaciones con seguimiento de entrega en HU-1/3/4/6/7/8 (ADR-024), tras revisión del líder del proyecto sobre extensibilidad del motor de descuento y mitigación real del riesgo de email no entregado.
 > Ver `DECISIONES_ARQUITECTURA.md` para el "por qué" de cada regla citada aquí (ADR-XXX) y `PLAN_DESARROLLO.md` para en qué gate se implementa cada historia.
-> Formato de historias de usuario y estructura del documento: mismo convenio que `spec-mezcla.md` (APCA).
+
 
 ---
 
@@ -10,12 +10,12 @@
 
 El departamento de ventas organiza un evento anual de promociones. Los clientes deben poder confirmar su asistencia y declarar los servicios/productos de su interés **antes** del evento, para que ventas prepare un portafolio de promociones personalizado por cliente. La plataforma:
 
-- No admite confirmaciones anónimas — todo cliente es invitado previamente por ventas (ADR-011).
+- Todo cliente es invitado previamente por ventas (ADR-011).
 - Calcula descuentos automáticos por categoría (servicios / productos) según reglas de umbral (ADR-004, ADR-005).
 - Administra un evento con múltiples slots (día/horario) con cupo limitado (ADR-008, ADR-009).
 - Permite editar/cancelar/reconfirmar antes de un deadline configurable (ADR-010).
 
-**No-objetivos** (fuera de alcance de esta entrega): múltiples eventos simultáneos, múltiples roles de ventas con permisos diferenciados, e2e de UI, diseño para 300k usuarios concurrentes (ver ADR-019).
+**No-objetivos** (fuera de alcance de esta entrega): múltiples eventos simultáneos, múltiples roles de ventas con permisos diferenciados, test e2e de UI, diseño para 300k usuarios concurrentes (ver ADR-019).
 
 ---
 
@@ -23,7 +23,7 @@ El departamento de ventas organiza un evento anual de promociones. Los clientes 
 
 | Rol | Cómo se identifica | Alcance |
 |---|---|---|
-| **Cliente invitado** | Email + código de acceso de 6 dígitos (ADR-011) | Solo su propia invitación/confirmación — nunca ve datos de otros clientes |
+| **Cliente invitado** | Email + código de acceso de 6 dígitos (ADR-011) | Solo su propia invitación/confirmación, nunca ve datos de otros clientes |
 | **Ventas (Admin)** | Email + password, cuenta seed única (ADR-013) | Todas las invitaciones, confirmaciones, catálogo, slots y configuración |
 
 | Acción | Cliente invitado | Ventas (Admin) |
@@ -38,8 +38,9 @@ El departamento de ventas organiza un evento anual de promociones. Los clientes 
 | Ver/exportar todas las confirmaciones | ❌ | ✅ (HU-8) |
 | CRUD catálogo (soft-delete) | ❌ | ✅ (HU-9) |
 | CRUD slots + cupo + deadline (N días) | ❌ | ✅ (HU-10) |
+| Configurar umbrales de descuento | ❌ | ✅ (HU-12) |
 
-No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requieren autenticación propia desde el primer acceso.
+Ambos roles requieren autenticación propia desde el primer acceso.
 
 ---
 
@@ -57,6 +58,8 @@ No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requiere
 - [ ] Se envía email vía Resend con el código y el link a la plataforma (ADR-015)
 - [ ] Si el email ya tiene invitación activa, no se crea una duplicada — se ofrece reenviar el código (HU-11)
 - [ ] La invitación queda "sin respuesta" (`usada_en IS NULL`) hasta el primer login exitoso del cliente
+- [ ] Se crea un registro en `notificaciones` (tipo=`invitacion`, estado=`pendiente`) en la misma transacción que la invitación; el envío real ocurre después de confirmar la transacción, nunca dentro de ella (ADR-024)
+- [ ] El webhook de Resend actualiza el registro a `enviado`/`fallido`/`rebotado`; un rebote (`rebotado`) es un estado distinto de "sin respuesta" — ventas lo distingue en HU-8, no lo confunde con que el cliente simplemente no ha entrado
 
 ### HU-2: Cliente inicia sesión con su código
 
@@ -65,9 +68,9 @@ No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requiere
 **Para** acceder a mi formulario de confirmación de asistencia
 
 **Criterios de aceptación**:
-- [ ] Email pre-llenado si se accede desde el link del correo
+- [ ] Email pre-llenado al acceder desde el link del correo
 - [ ] Email+código correctos → JWT en cookie httpOnly; se registra `invitaciones.usada_en` si es el primer login
-- [ ] Máximo 5 intentos fallidos en 15 minutos, contados **por email Y por IP de forma independiente** — cualquiera de los dos contadores al llegar al límite bloquea el intento (evita que un atacante rote de IP para seguir probando contra el mismo email, ADR-022)
+- [ ] Máximo 5 intentos fallidos en 15 minutos, contados **por email, sin importar la IP de origen** — un atacante de fuerza bruta contra un código específico normalmente rota de IP (botnet/dispositivos distintos) precisamente para evadir un límite por IP, así que el contador que realmente protege el espacio de 1,000,000 combinaciones del código es el de email (ADR-022)
 - [ ] Código inválido/expirado muestra mensaje genérico, sin revelar si el email existe (no enumeration)
 - [ ] Sin invitación previa para ese email, el login se rechaza — no existe ruta de acceso sin invitación (ADR-011)
 
@@ -91,6 +94,8 @@ No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requiere
 - [ ] `confirmaciones.invitacion_id` es `UNIQUE` — esta es la única confirmación posible para esa invitación (ADR-011)
 - [ ] Requiere al menos 1 ítem seleccionado (servicio o producto) — una confirmación con selección vacía se rechaza (400), validado en el schema Zod compartido (G0)
 - [ ] `POST /confirmaciones` se rechaza con 409 si ya existe una confirmación en estado `confirmada` para esa invitación (ese caso es HU-4/HU-5 vía `PATCH`, no un segundo `POST`)
+- [ ] Los umbrales usados (mínimos, monto Q1,500, %) vienen de `configuracion_descuento` vigente al momento de confirmar, y se congelan en la propia confirmación (ADR-023) — un cambio posterior de esos umbrales no reinterpreta esta confirmación
+- [ ] Tras confirmar, se crea un registro en `notificaciones` (tipo=`confirmacion`) y se envía email de confirmación con el resumen (servicios/productos/descuento/slot) — **nunca incluye el código de acceso** (ADR-024)
 
 ### HU-4: Cliente edita su selección antes del deadline
 
@@ -101,8 +106,9 @@ No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requiere
 **Criterios de aceptación**:
 - [ ] Solo posible si `ahora < (slot_actual.fecha_hora_inicio − N días)`, evaluado contra el slot que tenía **antes** de cualquier cambio (ADR-010)
 - [ ] Fuera de la ventana: mensaje "ediciones no permitidas, comuníquese al departamento de ventas al [teléfono ficticio]", sin aplicar ningún cambio
-- [ ] El descuento se recalcula con las mismas reglas de HU-3, nuevo snapshot al guardar
+- [ ] El descuento se recalcula con las mismas reglas de HU-3, nuevo snapshot al guardar (incluyendo los umbrales vigentes, ADR-023)
 - [ ] Si la confirmación está en estado `cancelada`, `PATCH /confirmaciones/mia` rechaza con 409 y remite a HU-7 (reconfirmar) — editar y reconfirmar son operaciones distintas
+- [ ] Se crea un registro en `notificaciones` (tipo=`edicion`) y se envía email confirmando los cambios, sin el código de acceso (ADR-024)
 
 ### HU-5: Cliente cambia de slot al editar
 
@@ -126,6 +132,7 @@ No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requiere
 - [ ] Solo dentro de la misma ventana de edición que HU-4
 - [ ] Libera el cupo del slot (+1) en la misma transacción, marca `estado = 'cancelada'`
 - [ ] No se borra la fila — el snapshot se conserva para el historial de ventas (ADR-006, ADR-009)
+- [ ] Se crea un registro en `notificaciones` (tipo=`cancelacion`) y se envía email confirmando la cancelación, sin el código de acceso (ADR-024)
 
 ### HU-7: Cliente reconfirma después de cancelar
 
@@ -138,17 +145,18 @@ No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requiere
 - [ ] Reconfirmar reutiliza la misma fila (`invitacion_id` UNIQUE) — nunca crea una segunda confirmación
 - [ ] Toma cupo con un `-1` fresco (`WHERE cupos_disponibles > 0`); si el slot original ya no tiene cupo, debe elegir otro
 - [ ] `estado` vuelve a `confirmada`, snapshot se sobrescribe con la nueva selección
+- [ ] Se crea un registro en `notificaciones` (tipo=`reconfirmacion`) y se envía email confirmando la nueva asistencia, sin el código de acceso (ADR-024)
 
 ### HU-8: Ventas consulta y exporta las confirmaciones
 
 **Como** miembro del equipo de ventas
-**Quiero** ver todas las confirmaciones (incluyendo quiénes no han respondido) con su selección y descuento
-**Para** preparar el portafolio de promociones personalizado de cada cliente
+**Quiero** ver todas las confirmaciones (incluyendo quiénes no han respondido y a quiénes no les llegó el correo) con su selección y descuento
+**Para** preparar el portafolio de promociones personalizado de cada cliente, y actuar proactivamente si un correo no llegó
 
 **Criterios de aceptación**:
-- [ ] Listado filtrable por estado: confirmada / cancelada / sin respuesta (`invitaciones.usada_en IS NULL`) — esto le da propósito al campo `usada_en`, que de otro modo no tendría ninguna historia que lo use
+- [ ] Listado filtrable por estado: confirmada / cancelada / sin respuesta (`usada_en IS NULL` y sin rebote) / **rebotada** (`notificaciones.estado_envio = 'rebotado'` para el tipo `invitacion`) — estos 4 estados nunca se agrupan entre sí (ADR-024)
 - [ ] Exporta CSV con columnas fijas: nombre, apellidos, email, slot, servicios, productos, subtotal servicios, % descuento servicios, subtotal productos, % descuento productos, total, estado (ADR-013)
-- [ ] Los datos exportados son el snapshot congelado (ADR-006), no un recálculo contra el catálogo actual
+- [ ] Los datos exportados son el snapshot congelado (ADR-006), no un recálculo contra el catálogo actual ni contra la configuración de descuento vigente (ADR-023)
 
 ### HU-9: Ventas gestiona el catálogo
 
@@ -182,6 +190,18 @@ No hay rol "público" ni "anónimo" en ninguna pantalla — ambos roles requiere
 - [ ] Reenvía el **mismo** código (no genera uno nuevo) — no invalida sesiones que el cliente ya esté usando
 - [ ] Disponible solo para invitaciones existentes, mismo botón/pantalla que HU-1
 
+### HU-12: Ventas configura los umbrales de descuento
+
+**Como** miembro del equipo de ventas
+**Quiero** cambiar los valores que determinan el % de descuento (mínimos de servicios/productos, monto Q1,500, porcentajes)
+**Para** ajustar la promoción sin depender de un cambio de código
+
+**Criterios de aceptación**:
+- [ ] Pantalla con los 5 valores de `configuracion_descuento`: mínimo servicios para 3%, mínimo servicios para 5%, monto mínimo en servicios para 5%, mínimo productos para 3%, mínimo productos para 5% (ADR-023)
+- [ ] Validación al guardar: todos los mínimos ≥ 1, porcentajes fijos en 3/5 (no editables — solo los umbrales que los disparan), y el umbral de 5% de cada categoría **no puede ser más débil** que el de 3% (ej. mínimo de servicios para 5% < mínimo para 3% se rechaza) — de lo contrario la regla "tier más alto gana" (ADR-005) queda incoherente
+- [ ] Cambiar la configuración **no** recalcula confirmaciones ya hechas — cada una guardó su propio snapshot de umbrales (ADR-023); solo aplica a confirmaciones/ediciones nuevas desde ese momento
+- [ ] Agregar un escenario de descuento distinto al de estas 4 reglas (ej. una quinta regla) es explícitamente **fuera del alcance de esta pantalla** — requiere un cambio de código en la lista de reglas del motor de descuento (ADR-023), no una opción de UI
+
 ---
 
 ## 4. Modelo de Datos
@@ -192,45 +212,70 @@ erDiagram
     CONFIRMACION ||--|{ CONFIRMACION_ITEM : "snapshot de (ADR-006)"
     CATALOGO_ITEM ||--o{ CONFIRMACION_ITEM : "referencia original (nullable, soft-delete)"
     SLOT ||--o{ CONFIRMACION : "asignado a (ADR-008)"
+    INVITACION ||--o{ NOTIFICACION : "genera (ADR-024)"
 
     INVITACION {
-        uuid id PK
+        uuid idinvitacion PK
         string email UK
-        string nombre
+        string nombre_cliente
         string codigo_acceso_hash
         timestamp creada_en
         timestamp usada_en "null = sin respuesta, HU-8"
     }
     CONFIRMACION {
-        uuid id PK
-        uuid invitacion_id FK "UNIQUE, ADR-011"
-        uuid slot_id FK
+        uuid idconfirmacion PK
+        uuid idinvitacion FK "UNIQUE, ADR-011"
+        uuid idslot FK
         string estado "confirmada | cancelada"
         int subtotal_servicios_cents
         int descuento_servicios_pct
         int subtotal_productos_cents
         int descuento_productos_pct
         int total_cents
+        int min_servicios_3pct_snapshot "ADR-023, umbral usado en este cálculo"
+        int min_servicios_5pct_snapshot
+        int monto_minimo_5pct_servicios_cents_snapshot
+        int min_productos_3pct_snapshot
+        int min_productos_5pct_snapshot
         timestamp confirmada_en
         timestamp actualizada_en
     }
+    CONFIGURACION_DESCUENTO {
+        uuid idconfiguracion PK
+        int min_servicios_3pct
+        int min_servicios_5pct
+        int monto_minimo_5pct_servicios_cents
+        int min_productos_3pct
+        int min_productos_5pct
+        timestamp actualizada_en
+    }
+    NOTIFICACION {
+        uuid idnotificacion PK
+        uuid idinvitacion FK "siempre presente"
+        uuid idconfirmacion FK "nullable, solo confirmacion|edicion|cancelacion|reconfirmacion"
+        string tipo "invitacion | confirmacion | edicion | cancelacion | reconfirmacion"
+        string estado_envio "pendiente | enviado | fallido | rebotado"
+        string id_mensaje_resend
+        timestamp creada_en
+        timestamp actualizada_en
+    }
     CONFIRMACION_ITEM {
-        uuid id PK
-        uuid confirmacion_id FK
-        uuid catalogo_item_id FK "nullable tras soft-delete"
+        uuid iditem PK
+        uuid idconfirmacion FK
+        uuid idcatalogo FK "nullable tras soft-delete"
         string nombre_snapshot
         string categoria_snapshot "servicio | producto"
         int precio_cents_snapshot
     }
     CATALOGO_ITEM {
-        uuid id PK
+        uuid idcatalogo PK
         string nombre
         string categoria "servicio | producto"
         int precio_cents
         bool activo
     }
     SLOT {
-        uuid id PK
+        uuid idslot PK
         timestamp fecha_hora_inicio
         timestamp fecha_hora_fin
         int cupo_maximo
@@ -238,13 +283,13 @@ erDiagram
         bool activo
     }
     ADMIN_USER {
-        uuid id PK
+        uuid idusuario PK
         string email UK
         string password_hash
     }
     INTENTO_FALLIDO {
-        uuid id PK
-        string identificador "email o email+IP"
+        uuid idintento PK
+        string identificador "email (sin IP, ver ADR-022)"
         string tipo "login_codigo | login_admin"
         timestamp creado_en
     }
@@ -337,13 +382,14 @@ graph TD
     Web -->|"HTTP/JSON validado contra el contrato"| Api
     Api --> DB
     Api --> Mail
+    Mail -.->|"webhook de entrega (ADR-024)"| Api
 ```
 
-**Corrección a ADR-003 (ratificada)**: los schemas Zod viven en `packages/shared-types` (no en `apps/api`), porque `apps/web` los necesita como objetos reales para validar formularios con React Hook Form (ADR-016) — un app no debe depender de otro app. `apps/api` sigue siendo quien los usa para validar request/response, y de ahí se genera el OpenAPI; el cambio es solo dónde vive el archivo fuente. Ver ADR-003 actualizada en `DECISIONES_ARQUITECTURA.md`.
+Los schemas Zod viven en `packages/shared-types`, porque `apps/web` los necesita como objetos reales para validar formularios con React Hook Form (ADR-016). `apps/api` sigue siendo quien los usa para validar request/response, y de ahí se genera el OpenAPI; el cambio es solo dónde vive el archivo fuente. Ver ADR-003 actualizada en `DECISIONES_ARQUITECTURA.md`.
 
 ---
 
-## 8. Endpoints (derivados de las historias — contrato real se genera de los schemas Zod, G0)
+## 8. Endpoints (derivados de las historias — contrato real se genera de los schemas Zod, Gate 0)
 
 | Método | Ruta | Historia | Rol |
 |---|---|---|---|
@@ -355,6 +401,8 @@ graph TD
 | CRUD | `/admin/catalogo` | HU-9 | Ventas |
 | CRUD | `/admin/slots` | HU-10 | Ventas |
 | GET/PATCH | `/admin/configuracion` (N días deadline) | HU-10 | Ventas |
+| GET/PATCH | `/admin/configuracion/descuento` | HU-12 | Ventas |
+| POST | `/webhooks/resend` | ADR-024 | Sistema (Resend) |
 | POST | `/auth/login` | HU-2 | Cliente |
 | GET | `/catalogo` | HU-3 | Cliente |
 | GET | `/slots` | HU-3 | Cliente |
@@ -364,8 +412,10 @@ graph TD
 
 ---
 
-## 9. Riesgos
+## 9. Riesgos y su mitigación
 
-- **Deadline mal configurado (N=0 o negativo)**: el admin panel debe validar N ≥ 0 al guardar configuración (HU-10) — un N negativo abriría edición después del evento.
-- **Email de invitación no entregado**: sin reintentos automáticos de envío en esta entrega; HU-11 (reenviar) es la mitigación manual.
-- **Confusión "sin respuesta" vs "cancelada"**: ambas dejan la invitación sin cupo tomado, pero solo "cancelada" tuvo una confirmación previa — el filtro de HU-8 debe distinguirlas explícitamente, nunca agruparlas como "inactivas".
+- **Deadline mal configurado (N=0 o negativo)** → mitigado: el admin panel valida N ≥ 0 al guardar configuración (HU-10, criterio ya incluido) — un N negativo abriría edición después del evento.
+- **Email no entregado (invitación, confirmación, edición, cancelación, reconfirmación)** → mitigado: registro `notificaciones` + webhook de Resend (ADR-024) detecta rebotes/fallos sin depender de que el cliente se queje; ventas los ve como estado distinto en HU-8. El reenvío manual (HU-11) sigue siendo la acción correctiva, pero ahora hay señal proactiva de que hace falta.
+- **Confusión entre "sin respuesta", "rebotada" y "cancelada"** → mitigado: HU-8 los trata como 3 filtros distintos, nunca agrupados como "inactivas" — solo "rebotada" indica un problema de entrega, "sin respuesta" puede ser un cliente que simplemente no ha entrado, "cancelada" tuvo una confirmación previa.
+- **Umbral de descuento configurado de forma incoherente (5% más débil que 3%)** → mitigado: HU-12 valida esa coherencia al guardar, antes de que afecte ninguna confirmación nueva.
+- **Cambio de umbral afecta retroactivamente confirmaciones pasadas** → mitigado: cada confirmación congela los umbrales que usó (ADR-023) — un cambio de configuración nunca reinterpreta una confirmación ya hecha.
