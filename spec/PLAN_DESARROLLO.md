@@ -1,6 +1,6 @@
 # Plan de Desarrollo — Plataforma de Confirmación de Asistencia
 
-> Versión: 1.2 | Fecha: 2026-09-16 — agrega descuento configurable (ADR-023) y notificaciones con seguimiento de entrega (ADR-024) a Gate 2/Gate 4/Gate 5
+> Versión: 1.3 | Fecha: 2026-09-16 — agrega descuento configurable (ADR-023) y notificaciones con seguimiento de entrega (ADR-024) a Gate 2/Gate 4/Gate 5; corrige exit criterio de Gate 0 (ubicación del schema, ADR-003) y lo marca cerrado
 > Ver `DECISIONES_ARQUITECTURA.md` para el "por qué" de cada decisión referenciada aquí.
 > Regla de cierre de gate (acordada en la entrevista): **tests pasan → `/code-review` sobre el diff → pase del advisor → walkthrough escrito → commit.** Ningún gate se da por cerrado sin los 5 pasos.
 
@@ -12,7 +12,9 @@ Entregable concreto: **formulario + descuento correcto + confirmación persistid
 
 ## Gate 0 — Contrato cerrado
 
-**Exit criterio**: Existe al menos un schema Zod real (`ConfirmarAsistenciaRequest`/`Response`) en `apps/api`, el OpenAPI se genera de ahí (ADR-003), los tipos llegan a `packages/shared-types`, y **ambas** apps (`apps/web`, `apps/api`) compilan importando ese paquete. Nada de feature code antes de esto.
+**Exit criterio**: Existe al menos un schema Zod real (`ConfirmarAsistenciaRequest`/`Response`) en `packages/shared-types` (ADR-003 corregida: los schemas viven ahí, no en `apps/api`), el OpenAPI se genera de ahí, los tipos llegan a `packages/shared-types`, y **ambas** apps (`apps/web`, `apps/api`) compilan importando ese paquete. Nada de feature code antes de esto.
+
+**Cerrado 2026-09-16** — ver `spec/todo.md` para el walkthrough.
 
 ## Gate 1 — Deploy pipeline verde
 

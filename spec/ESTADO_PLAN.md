@@ -1,6 +1,6 @@
 # Estado del Plan — Event Promotion Platform
 
-> Última actualización: 2026-09-16 — spec funcional completo (ADR-001 a ADR-024), plan de gates (G0-G6), 36 issues de GitHub creados en 7 milestones (`equipo-1-frontend` / `equipo-2-backend`). Scaffold del monorepo listo y verificado (instala, compila, `apps/api` levanta y responde). **Ningún gate de código iniciado todavía.**
+> Última actualización: 2026-09-16 — spec funcional completo (ADR-001 a ADR-024), plan de gates (G0-G6), 36 issues de GitHub creados en 7 milestones (`equipo-1-frontend` / `equipo-2-backend`). Scaffold del monorepo listo y verificado (instala, compila, `apps/api` levanta y responde). **Gate 0 (contrato cerrado) cerrado — ver `spec/todo.md`.**
 
 ---
 
@@ -8,7 +8,9 @@
 
 Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder del proyecto sobre identidad de cliente, extensibilidad del descuento y trazabilidad de email). `spec/DECISIONES_ARQUITECTURA.md`, `spec/SPEC_FUNCIONAL.md` y `spec/PLAN_DESARROLLO.md` están aprobados y commiteados. GitHub Issues (36) + 7 milestones reflejan el reparto Equipo 1 (frontend) / Equipo 2 (backend) historia por historia. El scaffold del monorepo (`apps/web`, `apps/api`, `packages/shared-types`) está completo y `.claude/CLAUDE.md` fue reescrito para React/Node/Express.
 
-**No se ha escrito código de features todavía.**
+**Gate 0 (contrato cerrado) completo.** `packages/shared-types` tiene el primer schema Zod end-to-end (`ConfirmarAsistenciaRequest`/`Response`, HU-3), el OpenAPI se genera de ahí, y `apps/api`/`apps/web` compilan y validan contra ese paquete (con tests reales, no solo compilación). Detalle completo del walkthrough en `spec/todo.md`, entrada "2026-09-16 (Gate 0 — Contrato cerrado)". Aún no hay lógica de negocio real (motor de descuento, endpoints reales, formulario real) — eso es Gate 2.
+
+**Pendiente de decisión del líder** (no resuelto sin ratificación, ver `spec/todo.md`): `spec/PLAN_DESARROLLO.md` línea 15 quedó desactualizada (dice que el schema vive "en `apps/api`", corregido por ADR-003 a `packages/shared-types`); y si `packages/shared-types/openapi.json` (generado, actualmente sin trackear) se commitea o se agrega a `.gitignore`.
 
 ---
 
@@ -16,8 +18,8 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 | Gate | Estado | Issues GitHub |
 |---|---|---|
-| G0 — Contrato cerrado | **No iniciado — próximo paso** | milestone "G0 - Contrato cerrado" |
-| G1 — Deploy pipeline verde | No iniciado | milestone "G1 - Deploy pipeline verde" |
+| G0 — Contrato cerrado | **Cerrado** | milestone "G0 - Contrato cerrado" |
+| G1 — Deploy pipeline verde | **No iniciado — próximo paso** | milestone "G1 - Deploy pipeline verde" |
 | G2 — Núcleo del PDF | No iniciado | milestone "G2 - Nucleo del PDF" |
 | G3 — Cupo atómico por slot | No iniciado | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | No iniciado | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
@@ -49,4 +51,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-Iniciar **Gate 0**. Ver `spec/next-session-prompt.md` para el prompt exacto de arranque.
+Gate 0 cerrado (ver `spec/todo.md`). Iniciar **Gate 1 — Deploy pipeline verde**: `Dockerfile` por servicio + `docker-compose.yml` local, desplegado en Railway (ADR-014), con `GET /health` en la API y página placeholder en web accesibles por URL pública.

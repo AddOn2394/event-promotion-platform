@@ -10,7 +10,7 @@
   "scripts": {
     "dev:web": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
-    "build": "npm run build -ws",
+    "build": "npm run build -w packages/shared-types && npm run build -w apps/api && npm run build -w apps/web",
     "test": "npm run test -ws --if-present",
     "lint": "npm run lint -ws --if-present"
   },

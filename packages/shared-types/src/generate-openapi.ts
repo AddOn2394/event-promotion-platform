@@ -1,19 +1,31 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { z } from "zod";
 import {
   OpenApiGeneratorV3,
   OpenAPIRegistry,
+  extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import {
+  ConfirmarAsistenciaItemSchema,
   ConfirmarAsistenciaRequestSchema,
   ConfirmarAsistenciaResponseSchema,
 } from "./confirmaciones.js";
 
+extendZodWithOpenApi(z);
+
 const registry = new OpenAPIRegistry();
 
-registry.register("ConfirmarAsistenciaRequest", ConfirmarAsistenciaRequestSchema);
-registry.register("ConfirmarAsistenciaResponse", ConfirmarAsistenciaResponseSchema);
+registry.register("ConfirmarAsistenciaItem", ConfirmarAsistenciaItemSchema);
+const RequestSchema = registry.register(
+  "ConfirmarAsistenciaRequest",
+  ConfirmarAsistenciaRequestSchema,
+);
+const ResponseSchema = registry.register(
+  "ConfirmarAsistenciaResponse",
+  ConfirmarAsistenciaResponseSchema,
+);
 
 registry.registerPath({
   method: "post",
@@ -23,7 +35,7 @@ registry.registerPath({
     body: {
       content: {
         "application/json": {
-          schema: ConfirmarAsistenciaRequestSchema,
+          schema: RequestSchema,
         },
       },
     },
@@ -33,9 +45,15 @@ registry.registerPath({
       description: "Confirmación registrada — subtotales, % de descuento y total en centavos",
       content: {
         "application/json": {
-          schema: ConfirmarAsistenciaResponseSchema,
+          schema: ResponseSchema,
         },
       },
+    },
+    400: {
+      description: "Selección vacía o slotId inválido — rechazado por el schema compartido (HU-3, G0)",
+    },
+    409: {
+      description: "Ya existe una confirmación 'confirmada' para esta invitación (HU-3/HU-7 vía PATCH, no un segundo POST)",
     },
   },
 });
