@@ -10,6 +10,10 @@ app.get("/", (_req, res) => {
   res.send("Feria de Promociones API — en construcción (ver spec/PLAN_DESARROLLO.md, Gate 1)");
 });
 
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // Placeholder de Gate 0: solo prueba que el contrato compartido valida en el límite de la API.
 // El endpoint real (motor de descuento, persistencia, cupo) es Gate 2/Gate 3.
 app.post("/confirmaciones", (req, res) => {

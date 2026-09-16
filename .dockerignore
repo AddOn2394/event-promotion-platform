@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+*.tsbuildinfo
+**/*.tsbuildinfo
+.vscode
+.claude
+spec
+README.md
+npm-debug.log

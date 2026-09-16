@@ -10,7 +10,9 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 **Gate 0 (contrato cerrado) completo.** `packages/shared-types` tiene el primer schema Zod end-to-end (`ConfirmarAsistenciaRequest`/`Response`, HU-3), el OpenAPI se genera de ahí, y `apps/api`/`apps/web` compilan y validan contra ese paquete (con tests reales, no solo compilación). Detalle completo del walkthrough en `spec/todo.md`, entrada "2026-09-16 (Gate 0 — Contrato cerrado)". Aún no hay lógica de negocio real (motor de descuento, endpoints reales, formulario real) — eso es Gate 2.
 
-**Pendiente de decisión del líder** (no resuelto sin ratificación, ver `spec/todo.md`): `spec/PLAN_DESARROLLO.md` línea 15 quedó desactualizada (dice que el schema vive "en `apps/api`", corregido por ADR-003 a `packages/shared-types`); y si `packages/shared-types/openapi.json` (generado, actualmente sin trackear) se commitea o se agrega a `.gitignore`.
+**Gate 1 (deploy pipeline verde) en progreso, no cerrado.** Dockerfiles (`apps/api`, `apps/web`), `docker-compose.yml`, `.dockerignore`, `GET /health` y credenciales de Postgres vía `.env`/`.env.example` ya están escritos y verificados. `/code-review` encontró y se corrigió un bug real (`tsconfig.base.json` faltante en el build context de Docker); después, a pregunta del usuario, se corrigió también un `COPY` de más (cada Dockerfile copiaba el `package.json` del otro servicio sin necesitarlo). **`docker compose up --build` ya corre localmente y ambos endpoints responden** (`http://localhost:3000/health` y `http://localhost:4173`, confirmado por el usuario). Falta únicamente: crear los servicios `api`/`web` + addon de Postgres en Railway (el usuario ya creó el proyecto) y confirmar las 2 URLs públicas. Detalle completo en `spec/todo.md`, entrada "2026-09-16 (Gate 1 — Deploy pipeline, EN PROGRESO, no cerrado)".
+
+**Pendiente de decisión del líder** (no resuelto sin ratificación, ver `spec/todo.md`): `spec/PLAN_DESARROLLO.md` línea 15 quedó desactualizada (dice que el schema vive "en `apps/api`", corregido por ADR-003 a `packages/shared-types`).
 
 ---
 
@@ -19,7 +21,7 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 | Gate | Estado | Issues GitHub |
 |---|---|---|
 | G0 — Contrato cerrado | **Cerrado** | milestone "G0 - Contrato cerrado" |
-| G1 — Deploy pipeline verde | **No iniciado — próximo paso** | milestone "G1 - Deploy pipeline verde" |
+| G1 — Deploy pipeline verde | **En progreso — próximo paso** | milestone "G1 - Deploy pipeline verde" |
 | G2 — Núcleo del PDF | No iniciado | milestone "G2 - Nucleo del PDF" |
 | G3 — Cupo atómico por slot | No iniciado | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | No iniciado | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
@@ -51,4 +53,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-Gate 0 cerrado (ver `spec/todo.md`). Iniciar **Gate 1 — Deploy pipeline verde**: `Dockerfile` por servicio + `docker-compose.yml` local, desplegado en Railway (ADR-014), con `GET /health` en la API y página placeholder en web accesibles por URL pública.
+Gate 1 en progreso (ver `spec/todo.md`). Docker local ya verificado. Falta: crear servicios `api`/`web` + Postgres administrado en Railway, y confirmar `GET /health` y la página de `apps/web` respondiendo por URL pública. Recién ahí Gate 1 cierra y arranca Gate 2.

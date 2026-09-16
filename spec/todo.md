@@ -36,3 +36,35 @@ Durante el cierre, `/code-review` y el advisor encontraron y se corrigieron vari
 Verificación final: `npm install` limpio, `npm run build` (orden `shared-types` → `apps/api` → `apps/web`) sin error, `npm run test` en verde con cobertura real (3 tests de contrato en `apps/api`, 2 tests de validación en `apps/web`), servidor compilado ejecutado y probado manualmente con `curl`.
 
 **Siguiente paso**: Gate 1 — deploy pipeline verde (Dockerfiles + docker-compose + Railway, `GET /health` en la API).
+
+---
+
+## 2026-09-16 (Gate 1 — Deploy pipeline, EN PROGRESO, no cerrado)
+
+Se preparó el pipeline de deploy pero **no se verificó de punta a punta** — Gate 1 queda abierto, no cerrado. Ver detalle de lo pendiente abajo.
+
+Trabajo hecho:
+- `apps/api/Dockerfile` y `apps/web/Dockerfile`: build multi-stage (`node:22-alpine`), con contexto de build = raíz del monorepo (no la subcarpeta del servicio), porque ambos dependen del `dist/` compilado de `packages/shared-types` (mismo orden que `npm run build` en la raíz). El stage `runner` copia el árbol `/app` completo del builder (`node_modules`, `packages/shared-types`, `apps/<servicio>`) en vez de reinstalar con `--omit=dev`, para no romper los symlinks relativos que crea `npm workspaces` entre `node_modules/@event-promotion/*` y `packages/`/`apps/*`. Cada Dockerfile solo copia el `package.json` de los workspaces que realmente construye (`shared-types` + el propio servicio) — verificado con una prueba aislada (`npm ci` con el `package.json` de un workspace no-relacionado ausente, pero listado en `package-lock.json`) que `npm ci` no requiere que estén presentes los `package.json` de workspaces de los que no depende nada de lo que se está instalando; la primera versión copiaba los tres sin necesidad, corregido tras una pregunta del usuario.
+- `docker-compose.yml` en la raíz: `postgres` (16-alpine, healthcheck `pg_isready`), `api` y `web` construidos desde los Dockerfiles de arriba, `DATABASE_URL` armado desde variables de Postgres. `api` espera a que `postgres` esté `healthy` antes de arrancar. Ningún código todavía se conecta a `DATABASE_URL` (eso es Gate 2) — solo queda cableado.
+- `GET /health` en `apps/api` (respuesta estática `{status:"ok"}`, sin lógica de negocio, tal como pide el exit criterio).
+- `apps/web/vite.config.ts`: se agregó `preview.host: true` y `preview.allowedHosts: [".railway.app"]` — Vite 6 bloquea por default el header `Host` del preview server con un dominio no reconocido, y el dominio público que asigna Railway es dinámico (subdominio de `railway.app`).
+- `.dockerignore` en la raíz (excluye `node_modules`, `dist`, `.git`, etc. del build context).
+- Credenciales de Postgres movidas a `.env` (gitignorado) con `.env.example` commiteado como plantilla — el usuario marcó explícitamente durante la sesión que no quiere ningún valor hardcodeado en código/config, ni siquiera para desarrollo local.
+
+Durante `/code-review`, se encontró y corrigió un bug real que habría roto el build en Railway sin avisar en ningún chequeo local: ningún Dockerfile copiaba `tsconfig.base.json` de la raíz, pero los tres `tsconfig.json` de los workspaces (`packages/shared-types`, `apps/api`, `apps/web`) lo extienden vía `../../tsconfig.base.json` — el primer `RUN npm run build -w packages/shared-types` habría fallado (`tsc` no encuentra el archivo). Se agregó `tsconfig.base.json` al `COPY` inicial en ambos Dockerfiles. Se verificó con grep que ningún otro `tsconfig.json` referencia archivos fuera de su propio workspace, y que `vite` (dependencia de `apps/web`, usada en runtime por `npm run preview`) está hoisteado al `node_modules` raíz que sí se copia completo al `runner` — no hay una segunda instancia del mismo bug.
+
+**Corrección posterior (misma sesión, a pregunta del usuario)**: el `COPY` inicial de `npm ci` en ambos Dockerfiles copiaba de más — `apps/api/Dockerfile` copiaba también `apps/web/package.json` (y viceversa) asumiendo sin probarlo que `npm ci` en un monorepo con `npm workspaces` exige que estén presentes los `package.json` de **todos** los workspaces listados en el glob `"workspaces"` de la raíz. Se verificó con una prueba aislada (lockfile con 3 workspaces, se borra el `package.json` de uno no relacionado, `npm ci` con npm 10.8.2 — mismo pin que el proyecto) que eso es falso: `npm ci` no necesita el `package.json` de un workspace del que nada depende. Se corrigieron ambos Dockerfiles para copiar solo lo que cada uno realmente construye (`shared-types` + el propio servicio).
+
+**Verificación local con Docker completada** (sesión continuada tras resolver dos problemas de entorno del usuario, no del código):
+- Un error inicial de red al bajar `postgres:16-alpine`/`node:22-alpine` desde el registry (CDN cortando la descarga a mitad de camino) — se resolvió reintentando.
+- Un error `ports are not available` en el puerto 3000 (otro proceso en el host lo tenía tomado, probablemente de una corrida anterior) — se resolvió con `docker compose down` antes de `up`.
+- Un mensaje `invalid length of startup packet` en los logs de Postgres, que resultó ser el usuario probando conectarse al puerto 5432 con un cliente que no habla el protocolo binario de Postgres (no un problema del compose — el puerto sí estaba arriba).
+- Confirmado por el usuario: `http://localhost:3000/health` devuelve `{"status":"ok"}` y `http://localhost:4173` sirve la página placeholder de `apps/web`, ambos vía `docker compose up --build`.
+
+**Lo que falta y por qué Gate 1 todavía no cierra**:
+- **Railway**: el usuario creó el proyecto (tuvo que resolver un bloqueo de plan Trial vencido/plan Hobby por su cuenta), pero todavía no existen los 2 servicios (`api`, `web`) ni el addon de Postgres administrado, ni se generaron dominios públicos. Se le dejaron instrucciones para hacerlo desde el dashboard web (celular, sin necesitar el CLI): no fijar "Root Directory" en ningún servicio, sino la variable `RAILWAY_DOCKERFILE_PATH` (`apps/api/Dockerfile` / `apps/web/Dockerfile`) para que el build context siga siendo la raíz del repo.
+- Ni `GET /health` ni la página de `apps/web` fueron confirmadas respondiendo por **URL pública** todavía (exit criterio explícito del gate) — solo se verificó local vía `docker compose`.
+
+**Nota para Gate 2 (no bloquea Gate 1)**: `preview.allowedHosts: [".railway.app"]` acepta cualquier subdominio del dominio compartido de Railway, no solo el propio — a esta altura es inofensivo porque `apps/web` sirve una página placeholder sin estado de auth, pero conviene acotarlo al dominio generado real una vez que exista login/cookies (Gate 2, ADR-011).
+
+**Siguiente paso**: terminar de verificar Gate 1 (build Docker local si el usuario retoma desde la compu, o directamente el primer deploy real en Railway) y confirmar las 2 URLs públicas — ver `spec/next-session-prompt.md`. Recién ahí Gate 1 pasa a cerrado y arranca Gate 2.
