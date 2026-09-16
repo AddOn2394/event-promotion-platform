@@ -18,7 +18,7 @@ Entregable concreto: **formulario + descuento correcto + confirmación persistid
 
 ## Gate 1 — Deploy pipeline verde
 
-**Exit criterio**: `Dockerfile` por servicio + `docker-compose.yml` local funcionando, desplegado en Railway (ADR-014), con una ruta "hello world" de cada servicio (`GET /health` en la API, página placeholder en web) accesible por URL pública. Se adelanta este gate precisamente porque es la causa más común de fallar esta prueba en el último día.
+**Exit criterio**: `Dockerfile` por servicio + `docker-compose.yml` local funcionando, desplegado en Render (ADR-014, revisada) con una ruta "hello world" de cada servicio (`GET /health` en la API, página placeholder en web) accesible por URL pública. Se adelanta este gate precisamente porque es la causa más común de fallar esta prueba en el último día.
 
 ## Gate 2 — (invitación + login por código, slots ya existen, sin cupo atómico todavía)
 

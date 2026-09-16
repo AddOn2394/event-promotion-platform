@@ -68,3 +68,24 @@ Durante `/code-review`, se encontró y corrigió un bug real que habría roto el
 **Nota para Gate 2 (no bloquea Gate 1)**: `preview.allowedHosts: [".railway.app"]` acepta cualquier subdominio del dominio compartido de Railway, no solo el propio — a esta altura es inofensivo porque `apps/web` sirve una página placeholder sin estado de auth, pero conviene acotarlo al dominio generado real una vez que exista login/cookies (Gate 2, ADR-011).
 
 **Siguiente paso**: terminar de verificar Gate 1 (build Docker local si el usuario retoma desde la compu, o directamente el primer deploy real en Railway) y confirmar las 2 URLs públicas — ver `spec/next-session-prompt.md`. Recién ahí Gate 1 pasa a cerrado y arranca Gate 2.
+
+---
+
+## 2026-09-16 (Gate 1 — cambio de proveedor: Railway → Render, ADR-014 revisada)
+
+Con Docker ya verificado localmente (ver entrada anterior), se intentó el deploy real en Railway y aparecieron dos bloqueos reales, no de configuración:
+
+1. **`RAILWAY_DOCKERFILE_PATH` como variable de entorno nunca quedó guardado** en el servicio creado desde el dashboard — investigado con el MCP oficial de Railway (`plugin:railway:railway`, autenticado por OAuth durante la sesión): el servicio estaba usando el builder automático "Railpack" (no Docker), con `variableNames: []`. Railpack no puede autodetectar un monorepo con dos apps sin Dockerfile explícito, y falla antes de generar logs de build — de ahí el "There was an error deploying from source" sin log visible que se vio en el dashboard. Se corrigió usando el campo `dockerfilePath` del tool `update-service` del MCP directamente (más confiable que la variable de entorno), y se dejó el servicio `api` existente reconfigurado (`dockerfilePath: apps/api/Dockerfile`, `healthcheckPath: /health`, `DATABASE_URL` seteada vía referencia `${{Postgres.DATABASE_URL}}`).
+2. **El plan Free de Railway bloquea deploys nuevos en la región `sfo` en horario pico** (8am-8pm hora de Los Ángeles) salvo que se pague el plan Hobby ($5/mes) — apareció al intentar crear el servicio `web`. El usuario había resuelto un bloqueo similar al crear el proyecto (mencionado en la entrada de Gate 1 anterior) sin pagar, pero este es un límite distinto y más granular. El usuario confirmó explícitamente que no va a pagar nada por el hosting de este proyecto, y descartó también la opción de crear una cuenta nueva para evadir el límite (viola términos de servicio de Railway).
+
+**Decisión**: se cambió de proveedor a **Render**, que sí tiene free tier real (sin tarjeta de crédito) para Web Services Docker + Postgres administrado — ver ADR-014/ADR-015 revisada en `spec/DECISIONES_ARQUITECTURA.md` para el detalle completo y el trade-off aceptado (Postgres free de Render expira a los 30 días, Web Services free duermen tras 15 min de inactividad).
+
+Cambios de código para el nuevo proveedor:
+- `render.yaml` nuevo en la raíz: Blueprint de Render declarando los 3 servicios (`event-promotion-api`, `event-promotion-web`, tipo `web`/`runtime: docker`, `plan: free`; `event-promotion-db`, Postgres `plan: free`), con `dockerfilePath`/`dockerContext` apuntando a cada Dockerfile pero build context = raíz del repo (mismo patrón que ya usaban los Dockerfiles), y `DATABASE_URL` de `api` cableada vía `fromDatabase`.
+- Comentarios de cabecera en `apps/api/Dockerfile` y `apps/web/Dockerfile` actualizados (ya no mencionan `RAILWAY_DOCKERFILE_PATH`, apuntan a `render.yaml`).
+- `apps/web/vite.config.ts`: `preview.allowedHosts` cambiado de `.railway.app` a `.onrender.com`.
+- `docker-compose.yml` no cambia — sigue siendo válido para desarrollo local, es independiente del proveedor de deploy.
+
+**Pendiente para el usuario** (no ejecutable por el asistente, requiere cuenta/OAuth de Render que no existe todavía): crear cuenta en Render (sin tarjeta), conectar el repo de GitHub, y usar "New +" → "Blueprint" apuntando a este repo — Render debería detectar `render.yaml` solo y proponer crear los 3 recursos. El servicio `api`/`web`/Postgres que quedaron configurados en Railway durante esta sesión se dejan sin borrar por ahora (el usuario no confirmó si quiere eliminarlos) — no cuestan nada mientras no se les asigne el plan pago.
+
+**Siguiente paso**: el usuario crea la cuenta de Render y aplica el Blueprint; retomar para confirmar el deploy y las URLs públicas — ver `spec/next-session-prompt.md` (actualizar antes de cerrar la sesión).

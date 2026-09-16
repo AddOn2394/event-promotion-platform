@@ -121,11 +121,12 @@
 
 ---
 
-## ADR-014 / ADR-015 — Infraestructura: Railway (deploy) + Resend (email)
+## ADR-014 / ADR-015 — Infraestructura: Render (deploy) + Resend (email)
 
-**Decisión**: Los 3 servicios Dockerizados (web, api, postgres) se despliegan en Railway. Los correos (código de acceso, notificación de confirmación) se envían vía Resend.
-**Por qué**: Railway tiene free tier con soporte multi-servicio, Postgres administrado incluido, deploy directo desde GitHub y URL pública automática. Resend tiene free tier generoso y no requiere verificar dominio propio para pruebas.
-**Impacto**: `Dockerfile` por servicio + `railway.json`/config de Railway. Variable de entorno `RESEND_API_KEY`. Gate 1 (deploy pipeline verde) se construye contra este objetivo desde el principio, no al final.
+**Decisión (revisada 2026-09-16, ver `spec/todo.md`)**: Los 3 servicios Dockerizados (web, api, postgres) se despliegan en Render. Los correos (código de acceso, notificación de confirmación) se envían vía Resend.
+**Por qué**: La decisión original (v1.0-1.3) era Railway, por su free tier con soporte multi-servicio y Postgres administrado. Durante Gate 1 se descubrió que el free tier real de Railway es ~$1/mes de crédito (unas pocas horas de runtime) y bloquea deploys nuevos en horario pico salvo que se pague el plan Hobby ($5/mes) — el líder del proyecto no quiso pagar. Render ofrece Web Services Docker gratis (sin tarjeta de crédito) y Postgres administrado gratis, con deploy directo desde GitHub vía Blueprint (`render.yaml`) — cumple el mismo criterio original ("free tier real, multi-servicio, Postgres incluido") mejor que Railway hoy. Resend no cambia, sigue siendo la elección para email.
+**Trade-off aceptado**: la Postgres free de Render se borra automáticamente a los 30 días (hay que recrearla y volver a seedear si el proyecto sigue activo más allá de esa ventana) y los Web Services free "duermen" tras 15 min de inactividad (cold start de ~30-60s en el primer request tras dormir). Aceptable para este proyecto (demo/feria de promociones, no un servicio 24/7 de misión crítica).
+**Impacto**: `Dockerfile` por servicio (sin cambios) + `render.yaml` en la raíz (Blueprint de Render, reemplaza cualquier config específica de Railway). Variable de entorno `RESEND_API_KEY`. Gate 1 (deploy pipeline verde) se construye contra este objetivo desde el principio, no al final.
 
 ---
 

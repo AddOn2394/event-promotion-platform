@@ -8,7 +8,7 @@ export default defineConfig({
   },
   preview: {
     host: true,
-    allowedHosts: [".railway.app"],
+    allowedHosts: [".onrender.com"],
   },
   test: {
     environment: "jsdom",

@@ -1,6 +1,6 @@
 # Build context: raíz del monorepo (necesita packages/shared-types y el lockfile raíz).
-# Railway: setear RAILWAY_DOCKERFILE_PATH=apps/api/Dockerfile y NO fijar Root Directory,
-# para que el build context siga siendo la raíz del repo.
+# Render: ver render.yaml (dockerfilePath: ./apps/api/Dockerfile, dockerContext: .) —
+# el build context tiene que seguir siendo la raíz del repo, no esta subcarpeta.
 
 FROM node:22-alpine AS builder
 WORKDIR /app

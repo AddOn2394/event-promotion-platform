@@ -10,7 +10,9 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 **Gate 0 (contrato cerrado) completo.** `packages/shared-types` tiene el primer schema Zod end-to-end (`ConfirmarAsistenciaRequest`/`Response`, HU-3), el OpenAPI se genera de ahí, y `apps/api`/`apps/web` compilan y validan contra ese paquete (con tests reales, no solo compilación). Detalle completo del walkthrough en `spec/todo.md`, entrada "2026-09-16 (Gate 0 — Contrato cerrado)". Aún no hay lógica de negocio real (motor de descuento, endpoints reales, formulario real) — eso es Gate 2.
 
-**Gate 1 (deploy pipeline verde) en progreso, no cerrado.** Dockerfiles (`apps/api`, `apps/web`), `docker-compose.yml`, `.dockerignore`, `GET /health` y credenciales de Postgres vía `.env`/`.env.example` ya están escritos y verificados. `/code-review` encontró y se corrigió un bug real (`tsconfig.base.json` faltante en el build context de Docker); después, a pregunta del usuario, se corrigió también un `COPY` de más (cada Dockerfile copiaba el `package.json` del otro servicio sin necesitarlo). **`docker compose up --build` ya corre localmente y ambos endpoints responden** (`http://localhost:3000/health` y `http://localhost:4173`, confirmado por el usuario). Falta únicamente: crear los servicios `api`/`web` + addon de Postgres en Railway (el usuario ya creó el proyecto) y confirmar las 2 URLs públicas. Detalle completo en `spec/todo.md`, entrada "2026-09-16 (Gate 1 — Deploy pipeline, EN PROGRESO, no cerrado)".
+**Gate 1 (deploy pipeline verde) en progreso, no cerrado.** Dockerfiles (`apps/api`, `apps/web`), `docker-compose.yml`, `.dockerignore`, `GET /health` y credenciales de Postgres vía `.env`/`.env.example` ya están escritos y verificados. `/code-review` encontró y se corrigió un bug real (`tsconfig.base.json` faltante en el build context de Docker); después, a pregunta del usuario, se corrigió también un `COPY` de más (cada Dockerfile copiaba el `package.json` del otro servicio sin necesitarlo). **`docker compose up --build` ya corre localmente y ambos endpoints responden** (`http://localhost:3000/health` y `http://localhost:4173`, confirmado por el usuario).
+
+**Cambio de proveedor de deploy: Railway → Render (ADR-014 revisada, 2026-09-16).** El free tier real de Railway resultó ser ~$1/mes de crédito y bloquea deploys nuevos en horario pico salvo pagar plan Hobby; el usuario no quiso pagar. Se cambió a Render (free tier real, sin tarjeta). `render.yaml` (Blueprint con los 3 servicios) ya está escrito. Falta: que el usuario cree la cuenta de Render y aplique el Blueprint, y confirmar las 2 URLs públicas. Detalle completo en `spec/todo.md`, entradas "2026-09-16 (Gate 1 — Deploy pipeline, EN PROGRESO, no cerrado)" y "2026-09-16 (Gate 1 — cambio de proveedor: Railway → Render, ADR-014 revisada)".
 
 **Pendiente de decisión del líder** (no resuelto sin ratificación, ver `spec/todo.md`): `spec/PLAN_DESARROLLO.md` línea 15 quedó desactualizada (dice que el schema vive "en `apps/api`", corregido por ADR-003 a `packages/shared-types`).
 
@@ -38,7 +40,7 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 - Descuento: por categoría, tier más alto gana, centavos enteros, frontera Q1,500 estricta; umbrales configurables desde admin panel, escenarios nuevos como código (patrón strategy, open/closed) (ADR-004, ADR-005, ADR-023).
 - Evento: un evento activo, múltiples slots administrados, cupo atómico vía `UPDATE ... WHERE > 0`, orden de lock determinista en cambio de slot (ADR-008, ADR-009).
 - Notificaciones: log + webhook de Resend para detectar rebotes proactivamente (ADR-024).
-- Infraestructura: Railway (deploy) + Resend (email) (ADR-014/015). BD: PostgreSQL (ADR-021).
+- Infraestructura: Render (deploy) + Resend (email) (ADR-014/015, revisada 2026-09-16 — antes Railway). BD: PostgreSQL (ADR-021).
 - Rate limiting: por email, nunca por IP (ADR-022, corregido tras observación del usuario).
 - GitHub Issues + milestones (no Projects board) para el reparto de tareas Equipo 1/Equipo 2.
 - **Los commits los hace siempre el líder del proyecto — nunca el asistente.**
@@ -53,4 +55,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-Gate 1 en progreso (ver `spec/todo.md`). Docker local ya verificado. Falta: crear servicios `api`/`web` + Postgres administrado en Railway, y confirmar `GET /health` y la página de `apps/web` respondiendo por URL pública. Recién ahí Gate 1 cierra y arranca Gate 2.
+Gate 1 en progreso (ver `spec/todo.md`). Docker local ya verificado, proveedor cambiado a Render (ADR-014 revisada), `render.yaml` listo. Falta: que el usuario cree cuenta en Render y aplique el Blueprint, y confirmar `GET /health` y la página de `apps/web` respondiendo por URL pública. Recién ahí Gate 1 cierra y arranca Gate 2.
