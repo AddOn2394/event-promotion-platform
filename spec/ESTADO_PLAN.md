@@ -10,9 +10,9 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 **Gate 0 (contrato cerrado) completo.** `packages/shared-types` tiene el primer schema Zod end-to-end (`ConfirmarAsistenciaRequest`/`Response`, HU-3), el OpenAPI se genera de ahí, y `apps/api`/`apps/web` compilan y validan contra ese paquete (con tests reales, no solo compilación). Detalle completo del walkthrough en `spec/todo.md`, entrada "2026-09-16 (Gate 0 — Contrato cerrado)". Aún no hay lógica de negocio real (motor de descuento, endpoints reales, formulario real) — eso es Gate 2.
 
-**Gate 1 (deploy pipeline verde) en progreso, no cerrado.** Dockerfiles (`apps/api`, `apps/web`), `docker-compose.yml`, `.dockerignore`, `GET /health` y credenciales de Postgres vía `.env`/`.env.example` ya están escritos y verificados. `/code-review` encontró y se corrigió un bug real (`tsconfig.base.json` faltante en el build context de Docker); después, a pregunta del usuario, se corrigió también un `COPY` de más (cada Dockerfile copiaba el `package.json` del otro servicio sin necesitarlo). **`docker compose up --build` ya corre localmente y ambos endpoints responden** (`http://localhost:3000/health` y `http://localhost:4173`, confirmado por el usuario).
+**Gate 1 (deploy pipeline verde) cerrado.** Dockerfiles (`apps/api`, `apps/web`), `docker-compose.yml`, `.dockerignore`, `GET /health`, credenciales de Postgres vía `.env`/`.env.example`, y `render.yaml` (Blueprint de Render, tras el cambio de proveedor — ADR-014 revisada, ver abajo). Verificado local (`docker compose up --build`) y en producción: `https://event-promotion-api.onrender.com/health` → `200 {"status":"ok"}`, `https://event-promotion-web.onrender.com/` → `200` con la página placeholder. `/code-review` sobre todo el gate sin hallazgos, `advisor` con pase de cierre. Detalle completo en `spec/todo.md`, entrada "2026-09-16 (Gate 1 — CERRADO)" (y las dos entradas previas del mismo día para el historial completo: verificación local y cambio de proveedor).
 
-**Cambio de proveedor de deploy: Railway → Render (ADR-014 revisada, 2026-09-16).** El free tier real de Railway resultó ser ~$1/mes de crédito y bloquea deploys nuevos en horario pico salvo pagar plan Hobby; el usuario no quiso pagar. Se cambió a Render (free tier real, sin tarjeta). `render.yaml` (Blueprint con los 3 servicios) ya está escrito. Falta: que el usuario cree la cuenta de Render y aplique el Blueprint, y confirmar las 2 URLs públicas. Detalle completo en `spec/todo.md`, entradas "2026-09-16 (Gate 1 — Deploy pipeline, EN PROGRESO, no cerrado)" y "2026-09-16 (Gate 1 — cambio de proveedor: Railway → Render, ADR-014 revisada)".
+**Cambio de proveedor de deploy: Railway → Render (ADR-014 revisada, 2026-09-16).** El free tier real de Railway resultó ser ~$1/mes de crédito y bloquea deploys nuevos en horario pico salvo pagar plan Hobby; el usuario no quiso pagar. Se cambió a Render (free tier real, sin tarjeta) — detalle completo del trade-off aceptado en `spec/DECISIONES_ARQUITECTURA.md`. El proyecto de Railway (servicio `api` reconfigurado + servicio `web` vacío) quedó sin borrar — el usuario nunca confirmó si quería eliminarlo; no es el deploy activo, no asumir lo contrario en sesiones futuras.
 
 **Pendiente de decisión del líder** (no resuelto sin ratificación, ver `spec/todo.md`): `spec/PLAN_DESARROLLO.md` línea 15 quedó desactualizada (dice que el schema vive "en `apps/api`", corregido por ADR-003 a `packages/shared-types`).
 
@@ -23,8 +23,8 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 | Gate | Estado | Issues GitHub |
 |---|---|---|
 | G0 — Contrato cerrado | **Cerrado** | milestone "G0 - Contrato cerrado" |
-| G1 — Deploy pipeline verde | **En progreso — próximo paso** | milestone "G1 - Deploy pipeline verde" |
-| G2 — Núcleo del PDF | No iniciado | milestone "G2 - Nucleo del PDF" |
+| G1 — Deploy pipeline verde | **Cerrado** | milestone "G1 - Deploy pipeline verde" |
+| G2 — Núcleo del PDF | **No iniciado — próximo paso** | milestone "G2 - Nucleo del PDF" |
 | G3 — Cupo atómico por slot | No iniciado | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | No iniciado | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
 | G5 — Admin panel completo | No iniciado | milestone "G5 - Admin panel completo" |
@@ -55,4 +55,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-Gate 1 en progreso (ver `spec/todo.md`). Docker local ya verificado, proveedor cambiado a Render (ADR-014 revisada), `render.yaml` listo. Falta: que el usuario cree cuenta en Render y aplique el Blueprint, y confirmar `GET /health` y la página de `apps/web` respondiendo por URL pública. Recién ahí Gate 1 cierra y arranca Gate 2.
+Gate 1 cerrado (ver `spec/todo.md`). Iniciar **Gate 2 — invitación + login por código, slots ya existen, sin cupo atómico todavía** (`spec/PLAN_DESARROLLO.md`): catálogo seedeado, tabla `slots`, tabla `invitaciones` + pantallas de admin (login, invitar cliente), login de cliente por email+código, formulario detrás del login, motor de descuento (reglas open/closed, ADR-023), tabla `configuracion_descuento` seedeada, tabla `notificaciones`. Ver `spec/next-session-prompt.md`.

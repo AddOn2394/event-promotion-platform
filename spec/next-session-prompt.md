@@ -1,25 +1,24 @@
-# Prompt — Próxima sesión: terminar Gate 1 (en Render)
+# Prompt — Próxima sesión: Gate 2
 
-Continuamos `event-promotion-platform`. Gate 1 (deploy pipeline) está **en progreso, no cerrado** — ver `spec/todo.md`, entradas "2026-09-16 (Gate 1 — Deploy pipeline, EN PROGRESO, no cerrado)" y "2026-09-16 (Gate 1 — cambio de proveedor: Railway → Render, ADR-014 revisada)" antes de tocar nada.
+Continuamos `event-promotion-platform`. Gate 1 (deploy pipeline verde) está **cerrado** — ver `spec/todo.md`, entrada "2026-09-16 (Gate 1 — CERRADO)" para el walkthrough completo antes de tocar código nuevo. La app está desplegada en Render: `https://event-promotion-api.onrender.com` y `https://event-promotion-web.onrender.com` (ambos free tier — el servicio web duerme tras 15 min de inactividad, cold start ~30-60s en el primer request).
 
-**El proveedor de deploy cambió de Railway a Render durante la sesión anterior** (ADR-014 revisada en `spec/DECISIONES_ARQUITECTURA.md`) — Railway resultó no tener free tier real sin pagar. No vuelvas a proponer Railway salvo que el usuario lo pida explícitamente.
+Lee antes de escribir código: `spec/ESTADO_PLAN.md`, `spec/PLAN_DESARROLLO.md` Gate 2 (líneas 23-38), `spec/DECISIONES_ARQUITECTURA.md` — en particular ADR-004/ADR-005/ADR-023 (motor de descuento), ADR-008 (slots), ADR-011 (invitación + login por código), ADR-013 (login admin), ADR-015 (Resend), ADR-016 (React Hook Form + Zod + TanStack Query), ADR-024 (notificaciones). `spec/SPEC_FUNCIONAL.md` para las historias de usuario y el modelo de datos completo.
 
-Ya existen y no hace falta rehacer: `apps/api/Dockerfile`, `apps/web/Dockerfile` (ya verificados corriendo local con `docker compose up --build` — el usuario confirmó `http://localhost:3000/health` y `http://localhost:4173` respondiendo), `docker-compose.yml`, `.dockerignore`, `.env.example`, `GET /health` en `apps/api`, `render.yaml` (Blueprint de Render con los 3 servicios: `event-promotion-api`, `event-promotion-web`, `event-promotion-db`).
+Gate 2 es el gate más grande del plan — considerá partirlo en sesiones si no entra en una sola. Ejecuta en este orden. No pidas confirmación entre pasos salvo que algo del spec sea ambiguo o contradiga lo que encuentres en el código — en ese caso, detente y pregunta, no asumas.
 
-Ejecuta en este orden. No pidas confirmación entre pasos salvo que algo sea ambiguo o contradiga lo que encuentres en el código.
+1. **Modelo de datos**: catálogo de servicios/productos seedeado (fijo, sin CRUD — eso es Gate 5). Tabla `slots` (ADR-008) seedeada, **sin** `cupos_disponibles` todavía (eso es Gate 3 exclusivo, para no construir el formulario dos veces). Tabla `invitaciones` (ADR-011). Tabla `configuracion_descuento` (ADR-023) seedeada con los valores del PDF (2 servicios/3%, 2 servicios+Q1,500/5%, 3 productos/3%, 5 productos/5%). Tabla `notificaciones` (ADR-024, `idconfirmacion` nullable).
+2. **Motor de descuento**: función pura, testeable sin DB, implementada como lista de reglas (predicado + %, ADR-023) — open/closed desde el día uno. Money siempre en centavos enteros, nunca float. Frontera Q1,500 estricta. Tests unitarios exhaustivos de la tabla de fronteras de ADR-005 (2 servicios en Q1,500.00 exacto → 3%, Q1,500.01 → 5%, análogo productos en 3/4/5) — esto es exit criterio explícito del gate, no opcional.
+3. **Admin (dos pantallas mínimas, no un endpoint sin UI)**: login admin (cuenta seed, ADR-013) y pantalla "Invitar cliente" (email/nombre → código de 6 dígitos, hasheado, enviado por email vía Resend). El resto del admin panel es Gate 5.
+4. **Login de cliente** por email + código (JWT en cookie httpOnly) — puerta de entrada obligatoria al formulario, sin excepción ni siquiera la primera vez.
+5. **Formulario** (detrás del login): datos del cliente + selección de servicios/productos con las dos cajas en vivo (ADR-004) + selector de slot. `react-hook-form` + el schema Zod compartido (ADR-016) — nunca validación hecha a mano donde el schema ya la expresa.
+6. **Confirmar** persiste con snapshot de precio/descuento y snapshot de los umbrales usados (ADR-006, ADR-023), referenciando slot e invitación desde el día uno.
+7. Cierra el gate: tests (incluida la tabla de fronteras completa) → `/code-review` sobre el diff → `advisor` → walkthrough en `spec/todo.md` (fecha de hoy) → actualiza `spec/ESTADO_PLAN.md` (G2 pasa a "cerrado", próximo paso = G3) → detente.
 
-1. Confirmar si el usuario ya tiene cuenta de Render. Si no, que la cree en render.com (sin tarjeta de crédito requerida para el free tier).
-2. Guiar al usuario: en el dashboard de Render, "New +" → "Blueprint" → conectar el repo `AddOn2394/event-promotion-platform` → Render debería detectar `render.yaml` automáticamente y proponer crear los 3 recursos (2 Web Services + 1 Postgres). El usuario aplica el Blueprint.
-3. Verificar el estado de los 3 deploys. Si Render tiene MCP/CLI disponible en esta sesión, usarlo para diagnosticar en vez de pedirle al usuario que copie logs a mano (como se hizo con Railway vía su MCP oficial — mismo enfoque, otro proveedor). Si no hay tooling de Render disponible, pedir al usuario los logs de build/deploy del dashboard.
-4. Una vez desplegado, confirmar que las URLs públicas responden: `GET /health` de la API (200, `{"status":"ok"}`) y la página de `apps/web`. Nota: los Web Services free de Render duermen tras 15 min de inactividad — el primer request tras dormir puede tardar 30-60s (cold start), no es un error.
-5. Cierra el gate: corre los tests que existan (ya están en verde, solo re-confirmar) → pide `/code-review` sobre cualquier cambio nuevo que haya surgido de la verificación → llama al `advisor` → escribe un párrafo de walkthrough en `spec/todo.md` (fecha de hoy) → actualiza `spec/ESTADO_PLAN.md` (G1 pasa a "cerrado", próximo paso = G2) → detente.
-
-No implementes lógica de negocio real (invitaciones, login, formulario, motor de descuento) en este gate — eso es Gate 2 (issues en GitHub, milestone "G2 - Nucleo del PDF"). Este gate es exclusivamente el pipeline de despliegue.
-
-**Contexto que ya no hace falta redecidir** (no lo repitas ni lo cuestiones salvo que el código muestre lo contrario):
-- Render es el proveedor de deploy (ADR-014 revisada) — no Railway. El usuario dejó un proyecto configurado en Railway (servicio `api` reconfigurado con Dockerfile correcto, servicio `web` creado sin source) que no se borró todavía; no hace falta tocarlo salvo que el usuario lo pida.
-- Las credenciales de Postgres van siempre por `.env`/`.env.example` en local, nunca hardcodeadas — instrucción explícita del usuario, aplica a cualquier archivo de código/config que toques de acá en adelante. En Render, la conexión a la DB se resuelve vía `fromDatabase` en `render.yaml`, no hace falta ningún `.env` ahí.
-- El orden de build en la raíz ya es `shared-types` → `apps/api` → `apps/web` (`package.json`), porque `apps/api`/`apps/web` dependen del `dist/` compilado de `shared-types`, no de su fuente. Ambos Dockerfiles ya respetan ese orden.
-- `packages/shared-types/openapi.json` se commitea (decisión ya tomada por el líder del proyecto) — no lo agregues a `.gitignore`.
+**Contexto que ya no hace falta redecidir** (ya resuelto, no lo repitas ni lo cuestiones salvo que el código muestre lo contrario):
+- El proveedor de deploy es **Render**, no Railway (ADR-014 revisada en Gate 1) — la app ya está viva ahí, cualquier variable/config nueva que agregues (ej. `RESEND_API_KEY`) se setea en el dashboard de Render, no en Railway. El proyecto de Railway sigue existiendo sin borrar (servicio `api` reconfigurado + servicio `web` vacío) pero no es el deploy activo — ignoralo salvo que el usuario pida limpiarlo.
+- Los schemas Zod van en `packages/shared-types`, nunca duplicados a mano en `apps/web`/`apps/api` (ADR-003).
+- Las credenciales/secrets (incluido `RESEND_API_KEY`) van siempre por variables de entorno — en Render vía el dashboard/`render.yaml`, en local vía `.env`/`.env.example`, nunca hardcodeadas en código o config. Instrucción explícita del usuario, aplica a todo archivo que toques.
+- El orden de build es `shared-types` → `apps/api` → `apps/web` — ya reflejado en `package.json` raíz y en ambos Dockerfiles, no lo cambies.
+- `packages/shared-types/openapi.json` se commitea.
 
 **No hagas commit.** El usuario comitea siempre — deja el árbol de trabajo listo y dilo explícitamente al terminar.

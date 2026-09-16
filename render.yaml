@@ -3,6 +3,7 @@ services:
     type: web
     runtime: docker
     plan: free
+    region: oregon
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -16,9 +17,11 @@ services:
     type: web
     runtime: docker
     plan: free
+    region: oregon
     dockerfilePath: ./apps/web/Dockerfile
     dockerContext: .
 
 databases:
   - name: event-promotion-db
     plan: free
+    region: oregon

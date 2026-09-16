@@ -89,3 +89,25 @@ Cambios de código para el nuevo proveedor:
 **Pendiente para el usuario** (no ejecutable por el asistente, requiere cuenta/OAuth de Render que no existe todavía): crear cuenta en Render (sin tarjeta), conectar el repo de GitHub, y usar "New +" → "Blueprint" apuntando a este repo — Render debería detectar `render.yaml` solo y proponer crear los 3 recursos. El servicio `api`/`web`/Postgres que quedaron configurados en Railway durante esta sesión se dejan sin borrar por ahora (el usuario no confirmó si quiere eliminarlos) — no cuestan nada mientras no se les asigne el plan pago.
 
 **Siguiente paso**: el usuario crea la cuenta de Render y aplica el Blueprint; retomar para confirmar el deploy y las URLs públicas — ver `spec/next-session-prompt.md` (actualizar antes de cerrar la sesión).
+
+---
+
+## 2026-09-16 (Gate 1 — CERRADO)
+
+El usuario creó la cuenta de Render y aplicó el Blueprint (`render.yaml`) sin intervención del asistente — Render no tiene MCP/CLI conectado en esta sesión, a diferencia de Railway. Un único ajuste hecho a pedido de Render durante el apply: `databases[0].diskSizeGB` no es válido en plan Free (el campo se agregó por error al escribir `render.yaml`, copiado de un ejemplo de la doc que no aclaraba esa restricción) — se sacó del archivo.
+
+Los 3 recursos (`event-promotion-api`, `event-promotion-web`, `event-promotion-db`) quedaron desplegados y disponibles. Verificación final de URLs públicas:
+- `https://event-promotion-api.onrender.com/health` → `200 {"status":"ok"}`.
+- `https://event-promotion-api.onrender.com/` → `200`, texto placeholder de Gate 0/1.
+- `https://event-promotion-web.onrender.com/` → `200`, HTML de la página placeholder de `apps/web` (`<title>Feria de Promociones</title>`, bundle servido).
+
+Confirmado con el usuario (dashboard de Render) que `event-promotion-api` y `event-promotion-db` quedaron en la misma región (Oregon, el default del Blueprint cuando no se especifica) — importante porque una DB en otra región rompería la connection string interna o metería latencia en cada query. Se agregó `region: oregon` explícito a los 3 recursos en `render.yaml` para que esto no vuelva a depender de un default implícito si se agregan más recursos en gates futuros.
+
+`/code-review` sobre el rango completo del gate (`ab426b8..HEAD`, incluye el cambio de proveedor) no encontró hallazgos — es config de deploy + docs, sin lógica nueva, Dockerfiles sin cambios funcionales (solo comentarios). El advisor confirmó el cierre y señaló dos cosas a dejar registradas, no a resolver ahora:
+
+- **`DATABASE_URL` está cableada (`fromDatabase` en `render.yaml`) pero nunca ejercitada** — Render resolvió la variable al aplicar el Blueprint, pero ningún código todavía abre una conexión real a esa base (correcto para Gate 1, que es deploy-only). Gate 2 es la primera vez que algo va a intentar usarla de verdad — no asumir que "está cableada" significa "está probada".
+- **El proyecto de Railway con el servicio `api` reconfigurado y el servicio `web` vacío no se borró** — se dejó así porque el usuario nunca confirmó si quería eliminarlo (acción destructiva). No cuesta nada mientras no se le asigne un plan pago, pero cualquier sesión futura que mire Railway va a encontrar ese estado a medio configurar y no debe asumir que es el deploy activo — el deploy activo es Render.
+
+Verificación final completa: `npm run build` y `npm run test` en verde (sin cambios de código en esta sesión, solo config/docs), `/code-review` sin hallazgos, `advisor` con pase de cierre.
+
+**Gate 1 — Deploy pipeline verde: CERRADO.** Próximo paso: Gate 2 (invitación + login por código, formulario, motor de descuento) — ver `spec/PLAN_DESARROLLO.md` y `spec/next-session-prompt.md`.
