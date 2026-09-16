@@ -1,7 +1,7 @@
 # Decisiones de Arquitectura — Plataforma de Confirmación de Asistencia (Feria de Promociones)
 
-> Versión: 1.1 | Fecha: 2026-09-16
-> Estado: ADRs 001-022 acordadas en entrevista spec-driven (7+ rondas). ADR-011 revisada tras corrección del líder del proyecto (identidad de cliente basada en invitación previa, nunca anónima). Los 3 gates abiertos de la v1.0 quedan resueltos (§ final del documento).
+> Versión: 1.2 | Fecha: 2026-09-16
+> Estado: ADRs 001-022 acordadas en entrevista spec-driven (7+ rondas). ADR-011 revisada tras corrección del líder del proyecto (identidad de cliente basada en invitación previa, nunca anónima). ADR-003 revisada (schemas Zod en `packages/shared-types`, no en `apps/api`) tras diagramar la arquitectura del contrato en `spec/SPEC_FUNCIONAL.md`. Los 3 gates abiertos de la v1.0 quedan resueltos (§ final del documento).
 > Origen: `Prueba_Tecnica_Disagro.pdf` — plataforma para que clientes confirmen asistencia a un evento anual de promociones, seleccionando servicios/productos de interés, con descuento automático según reglas de negocio.
 
 ---
@@ -21,11 +21,11 @@
 
 ---
 
-## ADR-003 — Contrato Frontend/Backend
+## ADR-003 — Contrato Frontend/Backend (corregida)
 
-**Decisión**: Los schemas Zod se escriben una sola vez en `apps/api` (validación de request/response de cada endpoint). De ahí se genera el spec OpenAPI (`zod-to-openapi`) y los tipos TypeScript compartidos en `packages/shared-types`, consumidos por `apps/web`.
-**Por qué**: Alternativa considerada (OpenAPI escrito a mano como fuente, Zod aparte solo para UX de formularios) crea dos lugares que mantener sincronizados manualmente. Con Zod como única fuente, la validación de servidor y el contrato son literalmente el mismo artefacto, imposible que diverjan.
-**Impacto**: Gate 0 no cierra hasta que exista al menos un schema Zod end-to-end (ej. `ConfirmarAsistenciaRequest`), el OpenAPI generado, y ambas apps compilando contra `shared-types`.
+**Decisión**: Los schemas Zod se escriben una sola vez en **`packages/shared-types`** (no en `apps/api`). De ahí se genera el spec OpenAPI (`zod-to-openapi`) y los tipos TypeScript inferidos. Tanto `apps/api` (validación de request/response de cada endpoint) como `apps/web` (validación de formularios con React Hook Form, ADR-016) importan los mismos objetos Zod desde `packages/shared-types`.
+**Por qué**: Versión original de este ADR ponía los schemas en `apps/api`, pero `apps/web` necesita los **objetos** Zod reales para validar formularios, no solo los tipos TS inferidos — y una app no debe depender de otra app en un monorepo (`apps/web` importando de `apps/api` invertiría la dependencia esperada). `packages/shared-types` es el único lugar correcto para algo que ambas apps consumen por igual. Corrección detectada al diagramar la arquitectura del contrato (`spec/SPEC_FUNCIONAL.md` §7), ratificada por el líder del proyecto.
+**Impacto**: Gate 0 no cierra hasta que exista al menos un schema Zod end-to-end (ej. `ConfirmarAsistenciaRequest`) en `packages/shared-types`, el OpenAPI generado, y ambas apps (`apps/web`, `apps/api`) compilando contra ese paquete.
 
 ---
 
