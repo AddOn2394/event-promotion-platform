@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { DatetimeSchema, UuidSchema } from "./primitives.js";
 
 // Contrato de slots (ADR-008) — Gate 2: día/horario/cupo_maximo ya existen, sin
 // cupos_disponibles/mecánica de cupo todavía (exclusivo de Gate 3, ver PLAN_DESARROLLO.md).
 
 export const SlotSchema = z.object({
-  id: z.string().uuid(),
-  fechaHoraInicio: z.string().datetime(),
-  fechaHoraFin: z.string().datetime(),
+  id: UuidSchema,
+  fechaHoraInicio: DatetimeSchema,
+  fechaHoraFin: DatetimeSchema,
 });
 
 export const SlotsResponseSchema = z.array(SlotSchema);

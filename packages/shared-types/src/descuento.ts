@@ -2,6 +2,10 @@ import { z } from "zod";
 
 // Contrato del motor de descuento (ADR-004, ADR-005, ADR-023) — umbrales configurables
 // desde configuracion_descuento; los porcentajes 3/5 son fijos en código, no en este schema.
+// El resultado del cálculo (ResultadoCategoria/ResultadoDescuento, discount-engine.ts) no
+// tiene schema Zod propio a propósito: es el retorno de una función pura interna, no un
+// límite de red que necesite validarse — Zod es para datos no confiables entrando/saliendo
+// de la API, no para el resultado de un cálculo que el propio código ya controla.
 
 export const ConfiguracionDescuentoSchema = z.object({
   minServicios3pct: z.number().int().positive(),
@@ -12,12 +16,3 @@ export const ConfiguracionDescuentoSchema = z.object({
 });
 
 export type ConfiguracionDescuento = z.infer<typeof ConfiguracionDescuentoSchema>;
-
-export const ResultadoDescuentoCategoriaSchema = z.object({
-  subtotalCents: z.number().int().nonnegative(),
-  descuentoPct: z.number().int(),
-  descuentoCents: z.number().int().nonnegative(),
-  totalCents: z.number().int().nonnegative(),
-});
-
-export type ResultadoDescuentoCategoria = z.infer<typeof ResultadoDescuentoCategoriaSchema>;

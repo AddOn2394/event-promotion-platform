@@ -56,6 +56,10 @@
           "slotId": {
             "type": "string",
             "format": "uuid"
+          },
+          "nombreCliente": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
@@ -71,14 +75,18 @@
             "minimum": 0
           },
           "descuentoServiciosPct": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
           },
           "subtotalProductosCents": {
             "type": "integer",
             "minimum": 0
           },
           "descuentoProductosPct": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
           },
           "totalCents": {
             "type": "integer",
@@ -92,14 +100,307 @@
           "descuentoProductosPct",
           "totalCents"
         ]
+      },
+      "CatalogoResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nombre": {
+              "type": "string"
+            },
+            "categoria": {
+              "type": "string",
+              "enum": [
+                "servicio",
+                "producto"
+              ]
+            },
+            "precioCents": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "id",
+            "nombre",
+            "categoria",
+            "precioCents"
+          ]
+        }
+      },
+      "SlotsResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "fechaHoraInicio": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "fechaHoraFin": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "id",
+            "fechaHoraInicio",
+            "fechaHoraFin"
+          ]
+        }
+      },
+      "LoginClienteRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "codigo": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "email",
+          "codigo"
+        ]
+      },
+      "LoginClienteResponse": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "nombreCliente": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "email",
+          "nombreCliente"
+        ]
+      },
+      "AdminLoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "AdminLoginResponse": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "CrearInvitacionRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "nombreCliente": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "CrearInvitacionResponse": {
+        "type": "object",
+        "properties": {
+          "idinvitacion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "nombreCliente": {
+            "type": "string",
+            "nullable": true
+          },
+          "creadaEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "idinvitacion",
+          "email",
+          "nombreCliente",
+          "creadaEn"
+        ]
       }
     },
     "parameters": {}
   },
   "paths": {
+    "/admin/auth/login": {
+      "post": {
+        "description": "Login de ventas (ADR-013) — JWT en cookie httpOnly",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas (mensaje genérico, sin enumeration)"
+          }
+        }
+      }
+    },
+    "/admin/invitaciones": {
+      "post": {
+        "description": "HU-1 — crear invitación (requiere sesión de admin)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearInvitacionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitación creada, código enviado por email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrearInvitacionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          },
+          "409": {
+            "description": "Ya existe una invitación para ese email (HU-1)"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "HU-2 — login de cliente por email + código de 6 dígitos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginClienteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginClienteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Email o código inválido (mensaje genérico, sin enumeration, ADR-011)"
+          }
+        }
+      }
+    },
+    "/catalogo": {
+      "get": {
+        "description": "HU-3 (ADR-012) — catálogo activo, requiere sesión de cliente",
+        "responses": {
+          "200": {
+            "description": "Catálogo activo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogoResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de cliente"
+          }
+        }
+      }
+    },
+    "/slots": {
+      "get": {
+        "description": "HU-3 (ADR-008) — slots activos, requiere sesión de cliente",
+        "responses": {
+          "200": {
+            "description": "Slots activos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlotsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de cliente"
+          }
+        }
+      }
+    },
     "/confirmaciones": {
       "post": {
-        "description": "HU-3 / HU-7 — confirmar (o reconfirmar) asistencia",
+        "description": "HU-3 — confirmar asistencia (requiere sesión de cliente)",
         "requestBody": {
           "content": {
             "application/json": {
@@ -110,7 +411,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Confirmación registrada — subtotales, % de descuento y total en centavos",
             "content": {
               "application/json": {
@@ -121,10 +422,13 @@
             }
           },
           "400": {
-            "description": "Selección vacía o slotId inválido — rechazado por el schema compartido (HU-3, G0)"
+            "description": "Selección vacía, slotId inválido, o ítem/slot ya no disponible"
+          },
+          "401": {
+            "description": "Sin sesión de cliente"
           },
           "409": {
-            "description": "Ya existe una confirmación 'confirmada' para esta invitación (HU-3/HU-7 vía PATCH, no un segundo POST)"
+            "description": "Ya existe una confirmación para esta invitación (HU-4/HU-5/HU-7 vía PATCH, no un segundo POST)"
           }
         }
       }

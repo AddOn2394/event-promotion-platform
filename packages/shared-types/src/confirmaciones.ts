@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { CategoriaCatalogoSchema } from "./catalogo.js";
+import { CentsSchema, PctSchema, UuidSchema } from "./primitives.js";
 
 // Contrato de HU-3 (spec/SPEC_FUNCIONAL.md) — ver ADR-003, ADR-005, ADR-023.
 // Los % de descuento y totales son siempre enteros en centavos (ADR-005 punto 2).
@@ -7,23 +9,26 @@ import { z } from "zod";
 // al bundle del cliente. El registro para el OpenAPI vive solo en generate-openapi.ts.
 
 export const ConfirmarAsistenciaItemSchema = z.object({
-  catalogoItemId: z.string().uuid(),
-  categoria: z.enum(["servicio", "producto"]),
+  catalogoItemId: UuidSchema,
+  categoria: CategoriaCatalogoSchema,
 });
 
 export const ConfirmarAsistenciaRequestSchema = z.object({
   items: z
     .array(ConfirmarAsistenciaItemSchema)
     .min(1, "Debe seleccionar al menos un servicio o producto"),
-  slotId: z.string().uuid(),
+  slotId: UuidSchema,
+  // Editable al confirmar (ADR-011) — el email de la invitación nunca se edita, solo el
+  // nombre. Opcional: si no viene, se conserva el nombre_cliente que ya tenía la invitación.
+  nombreCliente: z.string().min(1).optional(),
 });
 
 export const ConfirmarAsistenciaResponseSchema = z.object({
-  subtotalServiciosCents: z.number().int().nonnegative(),
-  descuentoServiciosPct: z.number().int(),
-  subtotalProductosCents: z.number().int().nonnegative(),
-  descuentoProductosPct: z.number().int(),
-  totalCents: z.number().int().nonnegative(),
+  subtotalServiciosCents: CentsSchema,
+  descuentoServiciosPct: PctSchema,
+  subtotalProductosCents: CentsSchema,
+  descuentoProductosPct: PctSchema,
+  totalCents: CentsSchema,
 });
 
 export type ConfirmarAsistenciaItem = z.infer<typeof ConfirmarAsistenciaItemSchema>;

@@ -186,8 +186,9 @@ Ambos roles requieren autenticación propia desde el primer acceso.
 **Quiero** reenviar el código de acceso a un cliente ya invitado
 **Para** el caso de que no lo recibió o lo perdió
 
-**Criterios de aceptación**:
-- [ ] Reenvía el **mismo** código (no genera uno nuevo) — no invalida sesiones que el cliente ya esté usando
+**Criterios de aceptación (corregidos 2026-09-17, ver ADR-011 revisión Gate 2 sesión B)**:
+- [ ] "Reenviar" **genera un código nuevo** e invalida el anterior — el criterio original ("reenvía el mismo código") es incompatible con nunca guardar el código en texto plano (solo se persiste `codigo_acceso_hash`, ADR-011); no hay forma de recuperar el código original para reenviarlo literal sin reintroducir ese riesgo de seguridad. Ratificado con el líder del proyecto.
+- [ ] Si el cliente ya tiene una sesión abierta con el código anterior, esa sesión (JWT ya emitido) sigue válida hasta que expire — invalidar el código no revoca JWTs ya firmados; solo un login *nuevo* con el código viejo deja de funcionar.
 - [ ] Disponible solo para invitaciones existentes, mismo botón/pantalla que HU-1
 
 ### HU-12: Ventas configura los umbrales de descuento

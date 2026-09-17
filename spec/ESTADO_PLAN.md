@@ -24,7 +24,7 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 |---|---|---|
 | G0 — Contrato cerrado | **Cerrado** | milestone "G0 - Contrato cerrado" |
 | G1 — Deploy pipeline verde | **Cerrado** | milestone "G1 - Deploy pipeline verde" |
-| G2 — Núcleo del PDF | **En progreso — sesión A completa (DB + motor de descuento), faltan B (dominios apps/api) y C (formulario web + cierre)** | milestone "G2 - Nucleo del PDF" |
+| G2 — Núcleo del PDF | **En progreso — sesiones A (DB + motor de descuento) y B (dominios apps/api) completas, falta C (formulario web + cierre)** | milestone "G2 - Nucleo del PDF" |
 | G3 — Cupo atómico por slot | No iniciado | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | No iniciado | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
 | G5 — Admin panel completo | No iniciado | milestone "G5 - Admin panel completo" |
@@ -44,6 +44,8 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 - Rate limiting: por email, nunca por IP (ADR-022, corregido tras observación del usuario).
 - GitHub Issues + milestones (no Projects board) para el reparto de tareas Equipo 1/Equipo 2.
 - **Los commits los hace siempre el líder del proyecto — nunca el asistente.**
+- Motor de descuento compartido en `packages/shared-types` (ADR-025) — extiende ADR-003 a funciones puras de negocio sin I/O que ambas apps necesitan idénticas.
+- HU-11 (reenviar código) corregida: genera código nuevo, no recupera el original (ADR-026) — incompatible con nunca guardar el código en texto plano.
 
 ---
 
@@ -55,4 +57,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-Gate 2, sesión A cerrada (DB completa: migraciones + seed + motor de descuento con tabla de fronteras, ver `spec/todo.md` entrada "2026-09-16 (Gate 2 — sesión A)"). **Sesión B** (próxima): dominios de `apps/api` — `POST /admin/invitaciones` (HU-1), `POST /auth/login` (HU-2), `POST /confirmaciones` transaccional usando el motor de descuento ya construido (HU-3). Sesión C (después de B): formulario web + pantallas admin + cierre real del gate (tests → `/code-review` sobre el gate completo → advisor → walkthrough → `ESTADO_PLAN.md` a "cerrado").
+Gate 2, sesiones A y B cerradas — DB completa (migraciones + seed + motor de descuento con tabla de fronteras) y los 5 dominios de `apps/api` (`admin`, `auth`, `catalog`, `slots`, `registration`) con 24 tests de integración contra Postgres real, ver `spec/todo.md` entradas "2026-09-16 (Gate 2 — sesión A)" y "2026-09-17 (Gate 2 — sesión B)". **Sesión C** (próxima, cierra el gate): formulario web (login cliente, catálogo con las dos cajas en vivo usando `calcularDescuento` compartido para el preview, selector de slot, confirmar) + pantallas admin (login, invitar cliente) + cierre real del gate (tests → `/code-review` sobre el gate completo → advisor → walkthrough → `ESTADO_PLAN.md` a "cerrado"). Ver issues de GitHub #7, #9, #11.
