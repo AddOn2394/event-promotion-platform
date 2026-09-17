@@ -1,7 +1,7 @@
 # Decisiones de Arquitectura — Plataforma de Confirmación de Asistencia (Feria de Promociones)
 
-> Versión: 1.3 | Fecha: 2026-09-16
-> Estado: ADRs 001-024 acordadas en entrevista spec-driven (7+ rondas). ADR-011 revisada tras corrección del líder del proyecto (identidad de cliente basada en invitación previa, nunca anónima). ADR-003 revisada (schemas Zod en `packages/shared-types`, no en `apps/api`). ADR-022 corregida (rate limiting por email, no por IP — un atacante real rota de IP). ADR-023 (descuento: umbrales configurables + escenarios como código, open/closed) y ADR-024 (notificaciones con seguimiento de entrega) agregadas a petición del líder del proyecto tras revisar el spec funcional completo. Los 3 gates abiertos de la v1.0 quedan resueltos (§ final del documento).
+> Versión: 1.4 | Fecha: 2026-09-16
+> Estado: ADRs 001-025 acordadas en entrevista spec-driven (7+ rondas). ADR-011 revisada tras corrección del líder del proyecto (identidad de cliente basada en invitación previa, nunca anónima). ADR-003 revisada (schemas Zod en `packages/shared-types`, no en `apps/api`), y **extendida** por ADR-025 (funciones puras de negocio sin I/O también pueden vivir en `shared-types` cuando ambas apps necesitan el mismo resultado exacto). ADR-022 corregida (rate limiting por email, no por IP — un atacante real rota de IP). ADR-023 (descuento: umbrales configurables + escenarios como código, open/closed) y ADR-024 (notificaciones con seguimiento de entrega) agregadas a petición del líder del proyecto tras revisar el spec funcional completo. ADR-025 (motor de descuento compartido, ver abajo) ratificada durante Gate 2 al construir el motor. Los 3 gates abiertos de la v1.0 quedan resueltos (§ final del documento).
 > Origen: `Prueba_Tecnica_Disagro.pdf` — plataforma para que clientes confirmen asistencia a un evento anual de promociones, seleccionando servicios/productos de interés, con descuento automático según reglas de negocio.
 
 ---

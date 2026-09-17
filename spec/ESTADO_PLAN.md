@@ -24,7 +24,7 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 |---|---|---|
 | G0 — Contrato cerrado | **Cerrado** | milestone "G0 - Contrato cerrado" |
 | G1 — Deploy pipeline verde | **Cerrado** | milestone "G1 - Deploy pipeline verde" |
-| G2 — Núcleo del PDF | **No iniciado — próximo paso** | milestone "G2 - Nucleo del PDF" |
+| G2 — Núcleo del PDF | **En progreso — sesión A completa (DB + motor de descuento), faltan B (dominios apps/api) y C (formulario web + cierre)** | milestone "G2 - Nucleo del PDF" |
 | G3 — Cupo atómico por slot | No iniciado | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | No iniciado | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
 | G5 — Admin panel completo | No iniciado | milestone "G5 - Admin panel completo" |
@@ -55,4 +55,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-Gate 1 cerrado (ver `spec/todo.md`). Iniciar **Gate 2 — invitación + login por código, slots ya existen, sin cupo atómico todavía** (`spec/PLAN_DESARROLLO.md`): catálogo seedeado, tabla `slots`, tabla `invitaciones` + pantallas de admin (login, invitar cliente), login de cliente por email+código, formulario detrás del login, motor de descuento (reglas open/closed, ADR-023), tabla `configuracion_descuento` seedeada, tabla `notificaciones`. Ver `spec/next-session-prompt.md`.
+Gate 2, sesión A cerrada (DB completa: migraciones + seed + motor de descuento con tabla de fronteras, ver `spec/todo.md` entrada "2026-09-16 (Gate 2 — sesión A)"). **Sesión B** (próxima): dominios de `apps/api` — `POST /admin/invitaciones` (HU-1), `POST /auth/login` (HU-2), `POST /confirmaciones` transaccional usando el motor de descuento ya construido (HU-3). Sesión C (después de B): formulario web + pantallas admin + cierre real del gate (tests → `/code-review` sobre el gate completo → advisor → walkthrough → `ESTADO_PLAN.md` a "cerrado").

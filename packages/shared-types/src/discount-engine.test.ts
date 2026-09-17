@@ -107,16 +107,42 @@ describe("calcularDescuento — categorías independientes (ADR-004)", () => {
   });
 });
 
+describe("calcularDescuento — ítem con precio 0 (promocional/gratis, permitido por catalogo_items)", () => {
+  it("un ítem de precio 0 cuenta para el conteo de la categoría pero no aporta al subtotal", () => {
+    const resultado = calcularDescuento([servicio(0), servicio(80_000)], CONFIG);
+    expect(resultado.servicios.subtotalCents).toBe(80_000);
+    // 2 servicios (conteo incluye el de precio 0) → cumple min_servicios_3pct=2
+    expect(resultado.servicios.descuentoPct).toBe(3);
+  });
+});
+
 describe("calcularDescuento — dinero en centavos enteros, round half up", () => {
-  it("3% de Q333.33 (33,333 centavos) redondea a Q10.00 (1,000 centavos) de descuento", () => {
+  it("3% de Q333.32+Q0.01 (33,333 centavos) redondea a Q10.00 (1,000 centavos) de descuento", () => {
     const resultado = calcularDescuento(
-      [servicio(33_333), servicio(0)],
+      [servicio(33_332), servicio(1)],
       CONFIG,
     );
     expect(resultado.servicios.subtotalCents).toBe(33_333);
     expect(resultado.servicios.descuentoPct).toBe(3);
     expect(resultado.servicios.descuentoCents).toBe(1_000);
     expect(resultado.servicios.totalCents).toBe(32_333);
+  });
+
+  it("frontera exacta de .5 centavos (servicios, 3%): 50 cents * 3% = 1.5 → redondea hacia arriba a 2, no a 0 o 1 (banker's rounding fallaría aquí)", () => {
+    const resultado = calcularDescuento([servicio(25), servicio(25)], CONFIG);
+    expect(resultado.servicios.subtotalCents).toBe(50);
+    expect(resultado.servicios.descuentoPct).toBe(3);
+    expect(resultado.servicios.descuentoCents).toBe(2);
+  });
+
+  it("frontera exacta de .5 centavos (productos, 5%): 10 cents * 5% = 0.5 → redondea hacia arriba a 1", () => {
+    const resultado = calcularDescuento(
+      [producto(2), producto(2), producto(2), producto(2), producto(2)],
+      CONFIG,
+    );
+    expect(resultado.productos.subtotalCents).toBe(10);
+    expect(resultado.productos.descuentoPct).toBe(5);
+    expect(resultado.productos.descuentoCents).toBe(1);
   });
 
   it("totalCents combina servicios y productos tras aplicar cada descuento por separado", () => {
