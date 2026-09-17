@@ -1,6 +1,6 @@
 # Estado del Plan — Event Promotion Platform
 
-> Última actualización: 2026-09-16 — spec funcional completo (ADR-001 a ADR-024), plan de gates (G0-G6), 36 issues de GitHub creados en 7 milestones (`equipo-1-frontend` / `equipo-2-backend`). Scaffold del monorepo listo y verificado (instala, compila, `apps/api` levanta y responde). **Gate 0 (contrato cerrado) cerrado — ver `spec/todo.md`.**
+> Última actualización: 2026-09-17 — **Gate 2 (Núcleo del PDF) cerrado completo** (sesiones A+B+C). Ver `spec/todo.md`.
 
 ---
 
@@ -16,6 +16,8 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 **Pendiente de decisión del líder** (no resuelto sin ratificación, ver `spec/todo.md`): `spec/PLAN_DESARROLLO.md` línea 15 quedó desactualizada (dice que el schema vive "en `apps/api`", corregido por ADR-003 a `packages/shared-types`).
 
+**Gate 2 (Núcleo del PDF) cerrado completo (sesiones A+B+C).** Sesión A: DB (migraciones + seed) y motor de descuento compartido (`calcularDescuento`, ADR-025). Sesión B: los 5 dominios de `apps/api` (`admin`, `auth`, `catalog`, `slots`, `registration`) con JWT en cookies httpOnly, envío de emails vía Resend, 24 tests de integración. Sesión C: las 4 pantallas de `apps/web` (login admin, invitar cliente, login cliente, confirmar con las dos cajas en vivo del preview de descuento), más un endpoint nuevo (`GET /configuracion-descuento`, ratificado con el usuario — necesario para que el preview de `apps/web` pueda llamar `calcularDescuento`). `/code-review` sobre el gate completo (A+B+C) encontró 10 hallazgos — 4 bugs de correctness/UX corregidos (deduplicación de ítems repetidos en `POST /confirmaciones`, `nombreCliente` vacío rompiendo el submit en 2 pantallas, redirección a login faltante en cookie expirada), 6 mejoras de simplificación/eficiencia diferidas a propósito con su razón documentada (ver `spec/todo.md`, entrada "2026-09-17 (Gate 2 — sesión C)"). Verificado en navegador real por el usuario (flujo completo: invitar → email real vía Resend → login → confirmar, con descuento y total verificados exactos en la DB). **Pendiente explícito**: los cambios de esta sesión no están desplegados en Render todavía en esta rama, y no se confirmaron las variables de entorno nuevas en el dashboard de Render — no asumir que producción refleja este estado hasta confirmar ambas cosas.
+
 ---
 
 ## 2. Gates — estado
@@ -24,7 +26,7 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 |---|---|---|
 | G0 — Contrato cerrado | **Cerrado** | milestone "G0 - Contrato cerrado" |
 | G1 — Deploy pipeline verde | **Cerrado** | milestone "G1 - Deploy pipeline verde" |
-| G2 — Núcleo del PDF | **En progreso — sesiones A (DB + motor de descuento) y B (dominios apps/api) completas, falta C (formulario web + cierre)** | milestone "G2 - Nucleo del PDF" |
+| G2 — Núcleo del PDF | **Cerrado (sesiones A+B+C)** | milestone "G2 - Nucleo del PDF" |
 | G3 — Cupo atómico por slot | No iniciado | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | No iniciado | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
 | G5 — Admin panel completo | No iniciado | milestone "G5 - Admin panel completo" |
@@ -57,4 +59,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-Gate 2, sesiones A y B cerradas — DB completa (migraciones + seed + motor de descuento con tabla de fronteras) y los 5 dominios de `apps/api` (`admin`, `auth`, `catalog`, `slots`, `registration`) con 24 tests de integración contra Postgres real, ver `spec/todo.md` entradas "2026-09-16 (Gate 2 — sesión A)" y "2026-09-17 (Gate 2 — sesión B)". **Sesión C** (próxima, cierra el gate): formulario web (login cliente, catálogo con las dos cajas en vivo usando `calcularDescuento` compartido para el preview, selector de slot, confirmar) + pantallas admin (login, invitar cliente) + cierre real del gate (tests → `/code-review` sobre el gate completo → advisor → walkthrough → `ESTADO_PLAN.md` a "cerrado"). Ver issues de GitHub #7, #9, #11.
+**Gate 2 cerrado completo.** Próximo: **Gate 3 — cupo atómico por slot** (ver `spec/PLAN_DESARROLLO.md`). Antes de tocar código de Gate 3: confirmar en el dashboard de Render que las variables nuevas de Gate 2 (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`) están seteadas y desplegar la rama actual (incluye `GET /configuracion-descuento`, no desplegado todavía) antes de dar por buena cualquier verificación en producción.

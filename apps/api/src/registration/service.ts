@@ -1,10 +1,9 @@
 import type {
   ConfirmarAsistenciaRequest,
   ConfirmarAsistenciaResponse,
-  ConfiguracionDescuento,
 } from "@event-promotion/shared-types";
 import { calcularDescuento } from "@event-promotion/shared-types";
-import { buscarCatalogoActivoPorIds } from "../catalog/service.js";
+import { buscarCatalogoActivoPorIds, leerConfiguracionDescuentoVigente } from "../catalog/service.js";
 import { pool } from "../db/pool.js";
 import { withTransaction } from "../shared/db-transaction.js";
 import { HttpError } from "../shared/http-error.js";
@@ -12,31 +11,6 @@ import { enviarEmail } from "../shared/mailer.js";
 import { crearNotificacionPendiente, marcarNotificacionEnviada, marcarNotificacionFallida } from "../shared/notificaciones.js";
 import { esViolacionDeUnicidad } from "../shared/pg-error.js";
 import { buscarSlotActivoPorId } from "../slots/service.js";
-
-type ConfiguracionDescuentoRow = {
-  min_servicios_3pct: number;
-  min_servicios_5pct: number;
-  monto_minimo_5pct_servicios_cents: number;
-  min_productos_3pct: number;
-  min_productos_5pct: number;
-};
-
-async function leerConfiguracionDescuentoVigente(): Promise<ConfiguracionDescuento> {
-  const { rows } = await pool.query<ConfiguracionDescuentoRow>(
-    "SELECT min_servicios_3pct, min_servicios_5pct, monto_minimo_5pct_servicios_cents, min_productos_3pct, min_productos_5pct FROM configuracion_descuento",
-  );
-  const config = rows[0];
-  if (!config) {
-    throw new Error("configuracion_descuento no tiene ninguna fila — falta seedear (ver apps/api/src/db/seed.ts).");
-  }
-  return {
-    minServicios3pct: config.min_servicios_3pct,
-    minServicios5pct: config.min_servicios_5pct,
-    montoMinimo5pctServiciosCents: config.monto_minimo_5pct_servicios_cents,
-    minProductos3pct: config.min_productos_3pct,
-    minProductos5pct: config.min_productos_5pct,
-  };
-}
 
 function confirmacionEmailHtml(resultado: ConfirmarAsistenciaResponse): string {
   return `
@@ -63,8 +37,11 @@ export async function confirmarAsistencia(
 
   const itemsPorId = new Map(itemsCatalogo.map((item) => [item.id, item]));
 
-  const itemsResueltos = input.items.map((item) => {
-    const encontrado = itemsPorId.get(item.catalogoItemId);
+  // Se resuelve sobre idsUnicos, no sobre input.items — un catalogoItemId repetido en el
+  // request nunca debe cobrarse ni insertarse dos veces (categoría del item de entrada
+  // tampoco se usa: la categoría real siempre sale de itemsPorId, nunca del cliente).
+  const itemsResueltos = idsUnicos.map((id) => {
+    const encontrado = itemsPorId.get(id);
     if (!encontrado) {
       throw new HttpError(400, "Uno o más ítems seleccionados ya no están disponibles.");
     }

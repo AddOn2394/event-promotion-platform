@@ -100,6 +100,32 @@ describe("registration — POST /confirmaciones (HU-3), integración contra Post
     expect(itemsGuardados.every((row) => row.categoria_snapshot === "servicio")).toBe(true);
   });
 
+  it("deduplica un catalogoItemId repetido en el request — no lo cobra ni lo inserta dos veces", async () => {
+    const cookie = await loginClienteDePrueba();
+    const res = await request(app)
+      .post("/confirmaciones")
+      .set("Cookie", cookie)
+      .send({
+        items: [
+          { catalogoItemId: fixtures.servicioBaratoId, categoria: "servicio" },
+          { catalogoItemId: fixtures.servicioBaratoId, categoria: "servicio" },
+        ],
+        slotId: fixtures.slotId,
+      });
+
+    expect(res.status).toBe(201);
+    // servicioBarato = 50000, sin descuento (1 solo item real, no cruza ningún umbral) — si
+    // se hubiera duplicado, subtotal sería 100000 y podría cruzar el umbral de 5%.
+    expect(res.body.subtotalServiciosCents).toBe(50_000);
+    expect(res.body.descuentoServiciosPct).toBe(0);
+
+    const { rows: itemsGuardados } = await pool.query<{ idcatalogo: string }>(
+      "SELECT ci.idcatalogo FROM confirmacion_items ci JOIN confirmaciones c ON c.idconfirmacion = ci.idconfirmacion JOIN invitaciones i ON i.idinvitacion = c.idinvitacion WHERE i.email = $1",
+      [EMAIL_CLIENTE],
+    );
+    expect(itemsGuardados).toHaveLength(1);
+  });
+
   it("rechaza una segunda confirmación para la misma invitación con 409", async () => {
     const cookie = await loginClienteDePrueba();
     const body = {

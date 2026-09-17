@@ -20,6 +20,7 @@ import {
   ConfirmarAsistenciaRequestSchema,
   ConfirmarAsistenciaResponseSchema,
 } from "./confirmaciones.js";
+import { ConfiguracionDescuentoSchema } from "./descuento.js";
 import { SlotsResponseSchema } from "./slots.js";
 
 extendZodWithOpenApi(z);
@@ -37,6 +38,10 @@ const ConfirmarResponseSchema = registry.register(
 );
 const CatalogoSchema = registry.register("CatalogoResponse", CatalogoResponseSchema);
 const SlotsSchema = registry.register("SlotsResponse", SlotsResponseSchema);
+const ConfiguracionDescuentoSchemaRef = registry.register(
+  "ConfiguracionDescuento",
+  ConfiguracionDescuentoSchema,
+);
 const LoginClienteReqSchema = registry.register("LoginClienteRequest", LoginClienteRequestSchema);
 const LoginClienteResSchema = registry.register("LoginClienteResponse", LoginClienteResponseSchema);
 const AdminLoginReqSchema = registry.register("AdminLoginRequest", AdminLoginRequestSchema);
@@ -97,6 +102,20 @@ registry.registerPath({
   description: "HU-3 (ADR-008) — slots activos, requiere sesión de cliente",
   responses: {
     200: { description: "Slots activos", content: { "application/json": { schema: SlotsSchema } } },
+    401: { description: "Sin sesión de cliente" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/configuracion-descuento",
+  description:
+    "ADR-025 — umbrales vigentes del motor de descuento, para el preview en vivo de apps/web (requiere sesión de cliente)",
+  responses: {
+    200: {
+      description: "Configuración vigente",
+      content: { "application/json": { schema: ConfiguracionDescuentoSchemaRef } },
+    },
     401: { description: "Sin sesión de cliente" },
   },
 });

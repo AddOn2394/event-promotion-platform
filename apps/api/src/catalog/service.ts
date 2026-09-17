@@ -1,5 +1,33 @@
-import type { CatalogoItem } from "@event-promotion/shared-types";
+import type { CatalogoItem, ConfiguracionDescuento } from "@event-promotion/shared-types";
 import { pool } from "../db/pool.js";
+
+type ConfiguracionDescuentoRow = {
+  min_servicios_3pct: number;
+  min_servicios_5pct: number;
+  monto_minimo_5pct_servicios_cents: number;
+  min_productos_3pct: number;
+  min_productos_5pct: number;
+};
+
+// ADR-025: apps/api es la única autoridad que lee configuracion_descuento de la DB —
+// tanto /confirmaciones (registration/service.ts) como GET /configuracion-descuento
+// (preview en vivo de apps/web) usan esta misma lectura, para que nunca diverjan.
+export async function leerConfiguracionDescuentoVigente(): Promise<ConfiguracionDescuento> {
+  const { rows } = await pool.query<ConfiguracionDescuentoRow>(
+    "SELECT min_servicios_3pct, min_servicios_5pct, monto_minimo_5pct_servicios_cents, min_productos_3pct, min_productos_5pct FROM configuracion_descuento",
+  );
+  const config = rows[0];
+  if (!config) {
+    throw new Error("configuracion_descuento no tiene ninguna fila — falta seedear (ver apps/api/src/db/seed.ts).");
+  }
+  return {
+    minServicios3pct: config.min_servicios_3pct,
+    minServicios5pct: config.min_servicios_5pct,
+    montoMinimo5pctServiciosCents: config.monto_minimo_5pct_servicios_cents,
+    minProductos3pct: config.min_productos_3pct,
+    minProductos5pct: config.min_productos_5pct,
+  };
+}
 
 type CatalogoItemRow = {
   idcatalogo: string;

@@ -158,6 +158,43 @@
           ]
         }
       },
+      "ConfiguracionDescuento": {
+        "type": "object",
+        "properties": {
+          "minServicios3pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "minServicios5pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "montoMinimo5pctServiciosCents": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "minProductos3pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "minProductos5pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "minServicios3pct",
+          "minServicios5pct",
+          "montoMinimo5pctServiciosCents",
+          "minProductos3pct",
+          "minProductos5pct"
+        ]
+      },
       "LoginClienteRequest": {
         "type": "object",
         "properties": {
@@ -388,6 +425,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SlotsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de cliente"
+          }
+        }
+      }
+    },
+    "/configuracion-descuento": {
+      "get": {
+        "description": "ADR-025 — umbrales vigentes del motor de descuento, para el preview en vivo de apps/web (requiere sesión de cliente)",
+        "responses": {
+          "200": {
+            "description": "Configuración vigente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionDescuento"
                 }
               }
             }

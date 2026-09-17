@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
+import { AdminSessionProvider } from "./admin/context/AdminSessionContext";
+import { ClienteSessionProvider } from "./auth/context/ClienteSessionContext";
 
 const queryClient = new QueryClient();
 
@@ -14,9 +16,13 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <AdminSessionProvider>
+        <ClienteSessionProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ClienteSessionProvider>
+      </AdminSessionProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

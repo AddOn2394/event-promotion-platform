@@ -33,7 +33,6 @@ describe("catalog — GET /catalogo (ADR-007, ADR-012), integración contra Post
 
   afterAll(async () => {
     await limpiarTodoElFixture();
-    await pool.end();
   });
 
   it("rechaza la petición sin autenticación de cliente", async () => {
@@ -56,5 +55,41 @@ describe("catalog — GET /catalogo (ADR-007, ADR-012), integración contra Post
     expect(ids).not.toContain(idInactivo);
     expect(res.body.length).toBeGreaterThan(0);
     expect(res.body.every((item: { nombre: string }) => item.nombre !== "TEST FIXTURE inactivo")).toBe(true);
+  });
+});
+
+describe("catalog — GET /configuracion-descuento (ADR-025), integración contra Postgres real", () => {
+  beforeAll(async () => {
+    await limpiarTodoElFixture();
+    await seedFixtures();
+  });
+
+  afterEach(async () => {
+    await limpiarTablasTransaccionales();
+  });
+
+  afterAll(async () => {
+    await limpiarTodoElFixture();
+    await pool.end();
+  });
+
+  it("rechaza la petición sin autenticación de cliente", async () => {
+    const res = await request(app).get("/configuracion-descuento");
+    expect(res.status).toBe(401);
+  });
+
+  it("devuelve los mismos umbrales que usa apps/api al confirmar (fixtures: seedFixtures)", async () => {
+    const cookie = await loginClienteDePrueba();
+
+    const res = await request(app).get("/configuracion-descuento").set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      minServicios3pct: 2,
+      minServicios5pct: 2,
+      montoMinimo5pctServiciosCents: 150000,
+      minProductos3pct: 3,
+      minProductos5pct: 5,
+    });
   });
 });
