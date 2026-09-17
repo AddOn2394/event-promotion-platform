@@ -71,6 +71,16 @@ export async function confirmarAsistencia(
         ]);
       }
 
+      // ADR-009 punto 2: UPDATE condicional dentro de la misma transacción que la
+      // confirmación — única forma de tomar cupo, nunca un read-then-write con gap.
+      const cupoTomado = await client.query(
+        "UPDATE slots SET cupos_disponibles = cupos_disponibles - 1 WHERE idslot = $1 AND cupos_disponibles > 0",
+        [input.slotId],
+      );
+      if (cupoTomado.rowCount === 0) {
+        throw new HttpError(400, "Ese horario ya no tiene cupo disponible, elegí otro horario.");
+      }
+
       const { rows } = await client.query<{ idconfirmacion: string }>(
         `INSERT INTO confirmaciones (
            idinvitacion, idslot, estado,

@@ -55,10 +55,18 @@ describe("slots — GET /slots (ADR-008), integración contra Postgres real", ()
     expect(() => new Date(slot.fechaHoraInicio).toISOString()).not.toThrow();
   });
 
+  it("expone cuposDisponibles (ADR-009, informativo)", async () => {
+    const cookie = await loginClienteDePrueba();
+    const res = await request(app).get("/slots").set("Cookie", cookie);
+
+    const slot = res.body.find((s: { id: string }) => s.id === fixtureSlotId);
+    expect(slot.cuposDisponibles).toBe(10);
+  });
+
   it("no devuelve slots inactivos", async () => {
     const cookie = await loginClienteDePrueba();
     const { rows } = await pool.query<{ idslot: string }>(
-      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, activo) VALUES (now() + interval '5 days', now() + interval '5 days 1 hour', 5, false) RETURNING idslot",
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles, activo) VALUES (now() + interval '5 days', now() + interval '5 days 1 hour', 5, 5, false) RETURNING idslot",
     );
     const idInactivo = rows[0]?.idslot;
 

@@ -1,6 +1,6 @@
 # Estado del Plan — Event Promotion Platform
 
-> Última actualización: 2026-09-17 — **Gate 2 (Núcleo del PDF) cerrado completo** (sesiones A+B+C). Ver `spec/todo.md`.
+> Última actualización: 2026-09-17 — **Gate 3 (Cupo atómico por slot) cerrado**. Ver `spec/todo.md`.
 
 ---
 
@@ -18,6 +18,8 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 **Gate 2 (Núcleo del PDF) cerrado completo (sesiones A+B+C).** Sesión A: DB (migraciones + seed) y motor de descuento compartido (`calcularDescuento`, ADR-025). Sesión B: los 5 dominios de `apps/api` (`admin`, `auth`, `catalog`, `slots`, `registration`) con JWT en cookies httpOnly, envío de emails vía Resend, 24 tests de integración. Sesión C: las 4 pantallas de `apps/web` (login admin, invitar cliente, login cliente, confirmar con las dos cajas en vivo del preview de descuento), más un endpoint nuevo (`GET /configuracion-descuento`, ratificado con el usuario — necesario para que el preview de `apps/web` pueda llamar `calcularDescuento`). `/code-review` sobre el gate completo (A+B+C) encontró 10 hallazgos — 4 bugs de correctness/UX corregidos (deduplicación de ítems repetidos en `POST /confirmaciones`, `nombreCliente` vacío rompiendo el submit en 2 pantallas, redirección a login faltante en cookie expirada), 6 mejoras de simplificación/eficiencia diferidas a propósito con su razón documentada (ver `spec/todo.md`, entrada "2026-09-17 (Gate 2 — sesión C)"). Verificado en navegador real por el usuario (flujo completo: invitar → email real vía Resend → login → confirmar, con descuento y total verificados exactos en la DB). **Pendiente explícito**: los cambios de esta sesión no están desplegados en Render todavía en esta rama, y no se confirmaron las variables de entorno nuevas en el dashboard de Render — no asumir que producción refleja este estado hasta confirmar ambas cosas.
 
+**Gate 3 (Cupo atómico por slot) cerrado.** `cupos_disponibles` agregado a `slots` (migración 0008, ADR-009) con backfill desde `cupo_maximo` y `CHECK >= 0`. `confirmarAsistencia` toma el cupo con `UPDATE slots SET cupos_disponibles = cupos_disponibles - 1 WHERE idslot = $1 AND cupos_disponibles > 0` dentro de la misma transacción que la confirmación — nunca read-then-write; si el `UPDATE` afecta 0 filas, la transacción entera se revierte y responde 400. `GET /slots` expone `cuposDisponibles` (informativo, nunca autoritativo) y `SlotSelector.tsx` lo muestra deshabilitando la opción en 0. Test de concurrencia real (dos `POST /confirmaciones` simultáneos, invitaciones distintas, slot `cupo_maximo=1`) confirma exactamente un 201 y un 400, `cupos_disponibles` termina en 0 — **falsificado explícitamente** (se probó que el test falla si se reemplaza el `UPDATE` atómico por un read-then-write con gap, antes de confiar en que pasa por la razón correcta). `/code-review` sin hallazgos, `advisor` con dos pases (orientación + bloqueo de cierre hasta falsificar el test). Detalle completo en `spec/todo.md`, entrada "2026-09-17 (Gate 3 — Cupo atómico por slot: CERRADO)". **Pendiente explícito**: migración 0008 solo aplicada en la DB de test, no en la de desarrollo (`event_promotion`) — correr `npm run db:migrate` antes de la próxima sesión local; sigue sin desplegar en Render (arrastrado desde Gate 2); `SlotSelector` no verificado visualmente en navegador por este agente (el usuario lo hace directamente, per regla de memoria del proyecto).
+
 ---
 
 ## 2. Gates — estado
@@ -27,7 +29,7 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 | G0 — Contrato cerrado | **Cerrado** | milestone "G0 - Contrato cerrado" |
 | G1 — Deploy pipeline verde | **Cerrado** | milestone "G1 - Deploy pipeline verde" |
 | G2 — Núcleo del PDF | **Cerrado (sesiones A+B+C)** | milestone "G2 - Nucleo del PDF" |
-| G3 — Cupo atómico por slot | No iniciado | milestone "G3 - Cupo atomico por slot" |
+| G3 — Cupo atómico por slot | **Cerrado** | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | No iniciado | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
 | G5 — Admin panel completo | No iniciado | milestone "G5 - Admin panel completo" |
 | G6 — Endurecimiento final | No iniciado | milestone "G6 - Endurecimiento final" |
@@ -59,4 +61,4 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-**Gate 2 cerrado completo.** Próximo: **Gate 3 — cupo atómico por slot** (ver `spec/PLAN_DESARROLLO.md`). Antes de tocar código de Gate 3: confirmar en el dashboard de Render que las variables nuevas de Gate 2 (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`) están seteadas y desplegar la rama actual (incluye `GET /configuracion-descuento`, no desplegado todavía) antes de dar por buena cualquier verificación en producción.
+**Gate 3 cerrado.** Próximo: **Gate 4 — edición, deadline, cambio de slot y cancelación** (ver `spec/PLAN_DESARROLLO.md`). Antes de tocar código de Gate 4: correr `npm run db:migrate` contra la DB de desarrollo (`event_promotion`) — solo la de test tiene la migración 0008 aplicada — y, para cualquier verificación en producción, confirmar en el dashboard de Render que las variables de Gate 2 (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`) están seteadas y desplegar la rama actual (Gate 2 + Gate 3 completos, nada de esto está en Render todavía).

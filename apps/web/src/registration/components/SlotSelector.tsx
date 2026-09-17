@@ -13,10 +13,15 @@ function formatearSlot(slot: Slot): string {
   const fecha = inicio.toLocaleDateString("es-GT", { dateStyle: "medium" });
   const horaInicio = inicio.toLocaleTimeString("es-GT", { timeStyle: "short" });
   const horaFin = fin.toLocaleTimeString("es-GT", { timeStyle: "short" });
-  return `${fecha} — ${horaInicio} a ${horaFin}`;
+  const cupos =
+    slot.cuposDisponibles === 0
+      ? "sin cupo"
+      : `${slot.cuposDisponibles} cupo${slot.cuposDisponibles === 1 ? "" : "s"} disponible${slot.cuposDisponibles === 1 ? "" : "s"}`;
+  return `${fecha} — ${horaInicio} a ${horaFin} (${cupos})`;
 }
 
-// Cupos disponibles no se muestran todavía (Gate 3) — solo el horario en sí.
+// cuposDisponibles es informativo (ADR-009) — deshabilitar la opción en 0 es solo UX,
+// el servidor sigue siendo quien rechaza si el cupo se agota entre cargar y enviar el formulario.
 export function SlotSelector({ slots, registration, error }: Props) {
   return (
     <div>
@@ -24,7 +29,7 @@ export function SlotSelector({ slots, registration, error }: Props) {
       <select id="slotId" {...registration}>
         <option value="">Seleccioná un horario</option>
         {slots.map((slot) => (
-          <option key={slot.id} value={slot.id}>
+          <option key={slot.id} value={slot.id} disabled={slot.cuposDisponibles === 0}>
             {formatearSlot(slot)}
           </option>
         ))}

@@ -14,13 +14,13 @@ const app = createApp();
 const EMAIL_CLIENTE = "cliente-registro@example.com";
 const CODIGO = "999888";
 
-async function loginClienteDePrueba(): Promise<string> {
-  const codigoHash = await bcrypt.hash(CODIGO, 10);
+async function loginClienteDePrueba(email = EMAIL_CLIENTE, codigo = CODIGO): Promise<string> {
+  const codigoHash = await bcrypt.hash(codigo, 10);
   await pool.query(
     "INSERT INTO invitaciones (email, nombre_cliente, codigo_acceso_hash) VALUES ($1, $2, $3)",
-    [EMAIL_CLIENTE, "Cliente Registro", codigoHash],
+    [email, "Cliente Registro", codigoHash],
   );
-  const res = await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: CODIGO });
+  const res = await request(app).post("/auth/login").send({ email, codigo });
   const cookie = res.headers["set-cookie"]?.[0];
   if (!cookie) throw new Error("Login de prueba no devolvió cookie.");
   return cookie;
@@ -176,5 +176,40 @@ describe("registration — POST /confirmaciones (HU-3), integración contra Post
     );
     expect(rows[0]?.min_productos_3pct_snapshot).toBe(3);
     expect(rows[0]?.min_productos_5pct_snapshot).toBe(5);
+  });
+
+  it("cupo atómico (ADR-009): dos confirmaciones concurrentes contra un slot con cupo=1 dejan exactamente una 201 y una 400", async () => {
+    const { rows: slotRows } = await pool.query<{ idslot: string }>(
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES (now() + interval '11 days', now() + interval '11 days 1 hour', 1, 1) RETURNING idslot",
+    );
+    const slotUnicoId = slotRows[0]?.idslot;
+    if (!slotUnicoId) throw new Error("No se pudo crear el slot de prueba.");
+
+    const [cookieA, cookieB] = await Promise.all([
+      loginClienteDePrueba("cliente-concurrencia-a@example.com", "111222"),
+      loginClienteDePrueba("cliente-concurrencia-b@example.com", "222333"),
+    ]);
+
+    const body = {
+      items: [{ catalogoItemId: fixtures.productoId, categoria: "producto" }],
+      slotId: slotUnicoId,
+    };
+
+    const [resA, resB] = await Promise.all([
+      request(app).post("/confirmaciones").set("Cookie", cookieA).send(body),
+      request(app).post("/confirmaciones").set("Cookie", cookieB).send(body),
+    ]);
+
+    const estados = [resA.status, resB.status].sort();
+    expect(estados).toEqual([201, 400]);
+
+    const resFallida = resA.status === 400 ? resA : resB;
+    expect(resFallida.body.error).toContain("cupo");
+
+    const { rows: slotFinal } = await pool.query<{ cupos_disponibles: number }>(
+      "SELECT cupos_disponibles FROM slots WHERE idslot = $1",
+      [slotUnicoId],
+    );
+    expect(slotFinal[0]?.cupos_disponibles).toBe(0);
   });
 });

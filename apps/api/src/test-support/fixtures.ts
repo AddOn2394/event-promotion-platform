@@ -43,7 +43,7 @@ export async function seedFixtures(): Promise<Fixtures> {
     "INSERT INTO catalogo_items (nombre, categoria, precio_cents) VALUES ('TEST FIXTURE producto', 'producto', 30000) RETURNING idcatalogo",
   );
   const { rows: slotRows } = await pool.query<{ idslot: string }>(
-    "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo) VALUES (now() + interval '10 days', now() + interval '10 days 2 hours', 10) RETURNING idslot",
+    "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES (now() + interval '10 days', now() + interval '10 days 2 hours', 10, 10) RETURNING idslot",
   );
 
   const servicioBarato = servicioBaratoRows[0];
@@ -62,9 +62,12 @@ export async function seedFixtures(): Promise<Fixtures> {
   };
 }
 
-// Tablas transaccionales: se limpian entre tests dentro del mismo archivo.
+// Tablas transaccionales: se limpian entre tests dentro del mismo archivo. cupos_disponibles
+// se resetea aparte — confirmar decrementa el contador del slot fixture y, sin este reset,
+// decae entre tests dentro del mismo archivo hasta agotarlo (ADR-009).
 export async function limpiarTablasTransaccionales(): Promise<void> {
   await pool.query("TRUNCATE confirmaciones, confirmacion_items, notificaciones, invitaciones CASCADE");
+  await pool.query("UPDATE slots SET cupos_disponibles = cupo_maximo");
 }
 
 // Limpieza completa: se corre en beforeAll/afterAll de cada archivo — es una DB de test

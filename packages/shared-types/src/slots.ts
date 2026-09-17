@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { DatetimeSchema, UuidSchema } from "./primitives.js";
 
-// Contrato de slots (ADR-008) — Gate 2: día/horario/cupo_maximo ya existen, sin
-// cupos_disponibles/mecánica de cupo todavía (exclusivo de Gate 3, ver PLAN_DESARROLLO.md).
+// Contrato de slots (ADR-008). cupos_disponibles (Gate 3, ADR-009) es informativo para el
+// cliente — el servidor siempre revalida con el UPDATE condicional, nunca es autoritativo aquí.
 
 export const SlotSchema = z.object({
   id: UuidSchema,
   fechaHoraInicio: DatetimeSchema,
   fechaHoraFin: DatetimeSchema,
+  cuposDisponibles: z.number().int().nonnegative(),
 });
 
 export const SlotsResponseSchema = z.array(SlotSchema);

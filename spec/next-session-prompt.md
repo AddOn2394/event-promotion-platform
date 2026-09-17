@@ -1,46 +1,38 @@
-# Prompt — Próxima sesión: Gate 2, sesión C (cierre del gate)
+# Prompt — Próxima sesión: Gate 3 (cupo atómico por slot)
 
-Continuamos `event-promotion-platform`. Gate 1 (deploy pipeline verde) está **cerrado**. Gate 2 se dividió en 3 sesiones — **A (DB + motor de descuento) y B (dominios de `apps/api`) ya están cerradas**, ver `spec/todo.md` entradas "2026-09-16 (Gate 2 — sesión A)" y "2026-09-17 (Gate 2 — sesión B)" antes de tocar código nuevo. Esta sesión (**C**) es la última y cierra el gate completo.
+Continuamos `event-promotion-platform`. **Gate 2 (Núcleo del PDF) está cerrado completo** (sesiones A+B+C) — backend de los 5 dominios, formulario web completo (login admin, invitar, login cliente, confirmar con preview de descuento), verificado en navegador real de punta a punta. Ver `spec/todo.md`, entrada "2026-09-17 (Gate 2 — sesión C)", y `spec/ESTADO_PLAN.md`.
 
-La app está desplegada en Render: `https://event-promotion-api.onrender.com` y `https://event-promotion-web.onrender.com` (free tier — cold start ~30-60s tras 15 min de inactividad). El backend de Gate 2 (5 dominios: `admin`, `auth`, `catalog`, `slots`, `registration`) está completo y probado (24 tests de integración contra Postgres real + verificación manual con `curl`/Docker) pero **no desplegado a Render todavía en esta rama** — confirmar que las variables nuevas (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`) están seteadas en el dashboard de Render antes de dar por buena la verificación en producción.
+**Pendiente de Gate 2, no bloqueante para empezar Gate 3 pero confirmar antes de asumir que producción refleja el código actual**: la rama de Gate 2 (incluyendo `GET /configuracion-descuento`, agregado en sesión C) **no está desplegada en Render todavía**, y no se confirmó que las variables nuevas (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`) estén seteadas en el dashboard de Render. Si esta sesión toca algo que se vaya a verificar en producción, confirmar eso primero.
 
-Lee antes de escribir código: `spec/ESTADO_PLAN.md`, `spec/PLAN_DESARROLLO.md` Gate 2, `spec/DECISIONES_ARQUITECTURA.md` — en particular ADR-011 (login cliente), ADR-013 (login admin), ADR-016 (React Hook Form + Zod + TanStack Query), ADR-004/ADR-012 (dos cajas en vivo + búsqueda client-side), ADR-025 (motor de descuento compartido — `apps/web` debe importar `calcularDescuento` de `@event-promotion/shared-types` para el preview, nunca reimplementarlo), ADR-026 (HU-11 corregida, no aplica a esta sesión pero no la contradigas). `spec/SPEC_FUNCIONAL.md` HU-1, HU-2, HU-3 para los criterios de aceptación exactos del frontend.
+Lee antes de escribir código: `spec/PLAN_DESARROLLO.md` Gate 3 (sección "Gate 3 — Cupo atómico por slot"), `spec/DECISIONES_ARQUITECTURA.md` ADR-009 (cupo por slot: contador atómico, único mecanismo de escritura, orden de lock determinista) y ADR-008 (slots, ya cerrado en Gate 2). `spec/SPEC_FUNCIONAL.md` para el criterio de aceptación exacto de mostrar cupos disponibles.
 
 No pidas confirmación entre pasos salvo que algo del spec sea ambiguo o contradiga lo que encuentres en el código — en ese caso, detente y pregunta, no asumas.
 
-## Qué falta construir (todo en `apps/web`)
+## Qué falta construir
 
-1. **Pantalla de login admin** (`/admin/login`): email + password → `POST /admin/auth/login`. Cookie httpOnly ya la maneja el navegador solo; el frontend solo necesita mandar `credentials: "include"` en el fetch.
-2. **Pantalla "Invitar cliente"** (`/admin/invitaciones`, detrás de sesión admin): email + nombre opcional → `POST /admin/invitaciones`. Mostrar éxito/error (incluyendo el 409 de email duplicado).
-3. **Pantalla de login de cliente** (`/login`): email (pre-llenado desde query param del link de invitación, ver `construirLinkInvitacion` en `apps/api/src/admin/service.ts` — el formato es `/login?email=...`) + código de 6 dígitos → `POST /auth/login`. Mensaje de error genérico (el backend ya lo da, no inventar uno más específico en el frontend).
-4. **Formulario de confirmación** (`/confirmar`, detrás de sesión cliente):
-   - `GET /catalogo` y `GET /slots` con TanStack Query (ADR-016) — sin `useEffect`+`useState` manual.
-   - Buscador que filtra el catálogo ya cargado en memoria (ADR-012) — sin llamadas al servidor por tecleo.
-   - Dos cajas en vivo "Servicios seleccionados" / "Productos seleccionados" (ADR-004) con opción de quitar cada ítem, cada una mostrando su % de descuento en vivo. **El cálculo del preview usa `calcularDescuento` importado de `@event-promotion/shared-types` (ADR-025) — nunca una reimplementación a mano de las reglas.** Aclarar visualmente que es un preview, no el valor final (HU-3: el servidor recalcula, nunca confía en el cliente).
-   - Selector de slot (los slots que devuelve `GET /slots`, sin cupos visibles todavía — eso es Gate 3).
-   - Campo de nombre del cliente, editable (pre-llenado desde la sesión, `ConfirmarAsistenciaRequestSchema.nombreCliente` es opcional — ver `packages/shared-types/src/confirmaciones.ts`).
-   - Submit → `POST /confirmaciones` con `react-hook-form` + `zodResolver(ConfirmarAsistenciaRequestSchema)` (ADR-016) — nunca validación manual donde el schema ya la expresa. Manejar 400 (ítem/slot no disponible), 401 (sesión expirada → redirigir a login), 409 (ya confirmado).
-5. **Accesibilidad básica** en las 4 pantallas (labels asociados a inputs, foco visible, navegable por teclado) — no es la auditoría completa de Gate 6, solo lo básico que ya pide el CLAUDE.md para todo formulario.
-6. **Probar en navegador de verdad**, no solo tests: levantar `docker compose up` (o `npm run dev` en `apps/web` + `apps/api` local) y ejercitar el flujo completo — invitar cliente → recibir el link (revisar consola/logs si no hay `RESEND_API_KEY` real todavía) → login → confirmar → ver el resultado. Usar el skill `run` o browser tools si están disponibles en la sesión.
-7. Cierra el gate — **este es el checklist completo, no te lo saltees**:
-   - Tests (unitarios de componentes si aplica; ADR-017 dice que no hay e2e de UI, así que no agregar Playwright/Cypress).
-   - `/code-review` sobre **todo el diff de Gate 2** (sesiones A+B+C juntas, no solo esta sesión — es el primer review de gate completo).
-   - `advisor`.
-   - Walkthrough en `spec/todo.md` (fecha de hoy).
-   - Actualiza `spec/ESTADO_PLAN.md`: G2 pasa a "cerrado", próximo paso = G3.
-   - Cierra/comenta los issues de GitHub que correspondan (#7 HU-1 frontend, #9 HU-2 frontend, #11 HU-3 frontend).
-   - Detente.
+1. **Migración** `apps/api/migrations/0008_slots_cupos_disponibles.sql` (siguiente número en la secuencia — ver `apps/api/migrations/`, van del `0001` al `0007`): agrega `cupos_disponibles INTEGER NOT NULL` a `slots`, con `CHECK (cupos_disponibles >= 0)` (ADR-009). Backfill de las filas existentes con `cupos_disponibles = cupo_maximo` (la columna `cupo_maximo` ya existe desde Gate 2, ver `apps/api/migrations/0002_slots.sql`).
+2. **`apps/api/src/slots/service.ts`**: `listarSlotsActivos` (o como se llame la función actual) debe devolver también `cuposDisponibles` — informativo, nunca autoritativo (ADR-009 punto 1). Extender `SlotSchema` en `packages/shared-types/src/slots.ts` con `cuposDisponibles: z.number().int().nonnegative()`, regenerar OpenAPI.
+3. **`apps/api/src/registration/service.ts`** (`confirmarAsistencia`): el `INSERT` a `confirmaciones` debe ir precedido, **dentro de la misma transacción**, de `UPDATE slots SET cupos_disponibles = cupos_disponibles - 1 WHERE id = $1 AND cupos_disponibles > 0` (patrón exacto de ADR-009 punto 2). Si el `UPDATE` afecta 0 filas, abortar la transacción completa y responder 400 "cupo lleno, elige otro horario" (mismo patrón que la validación de slot/ítem inexistente que ya existe ahí) — **nunca** un read-then-write con gap entre leer `cupos_disponibles` y decidir si hay cupo (CLAUDE.md lo prohíbe explícitamente).
+4. **`apps/web`**: `SlotSelector` (`apps/web/src/registration/components/SlotSelector.tsx`) muestra los cupos disponibles junto a cada horario — informativo únicamente, con alguna indicación visual si un slot está en 0 (deshabilitarlo en el `<select>` es razonable, pero el servidor sigue siendo quien rechaza si dos clientes lo agotan a la vez entre que el cliente cargó la página y envió el formulario).
+5. **Test de concurrencia real** (el criterio de salida lo pide explícito, no es opcional): un slot con `cupo_maximo=1`/`cupos_disponibles=1`, dos `POST /confirmaciones` disparados con **dos conexiones/transacciones simultáneas reales** (no secuencial — usar dos clientes `pg` o dos requests `supertest` lanzados con `Promise.all` contra invitaciones distintas apuntando al mismo slot), y confirmar que exactamente una sale 201 y la otra 400 por cupo lleno, y que `cupos_disponibles` termina en 0 (nunca negativo, nunca sin decrementar).
 
-## Contexto que ya no hace falta redecidir (ya resuelto, no lo repitas ni lo cuestiones salvo que el código muestre lo contrario)
+## Checklist de cierre del gate — no te lo saltees
 
-- Backend de Gate 2 completo: los 5 endpoints (`POST /admin/auth/login`, `POST /admin/invitaciones`, `POST /auth/login`, `GET /catalogo`, `GET /slots`, `POST /confirmaciones`) existen, están probados, y el contrato Zod completo ya está en `packages/shared-types` (`admin.ts`, `auth.ts`, `catalogo.ts`, `slots.ts`, `confirmaciones.ts`, `descuento.ts`, `discount-engine.ts`).
-- CORS + cookies: la API ya tiene `cors` configurado con `credentials: true` y origin exacto (`FRONTEND_URL`) — el frontend debe mandar `credentials: "include"` en cada fetch para que la cookie de sesión viaje. `COOKIE_SECURE`/`SameSite` ya están resueltos correctamente para local y para Render (cross-site real, `onrender.com` está en la Public Suffix List) — no tocar esa lógica salvo que algo falle en la prueba real.
-- El proveedor de deploy es Render, no Railway (ADR-014 revisada) — cualquier variable nueva se setea en el dashboard de Render, no en Railway.
-- Los schemas Zod van en `packages/shared-types`, nunca duplicados a mano en `apps/web`/`apps/api` (ADR-003). Lo mismo aplica ahora al motor de descuento (ADR-025) — `apps/web` lo importa, no lo reimplementa.
+1. Tests (el de concurrencia de arriba es el que prueba la invariante real — todos los demás tests de integración existentes de `apps/api` deben seguir en verde).
+2. `/code-review` sobre el diff de Gate 3.
+3. `advisor`.
+4. Walkthrough en `spec/todo.md` (fecha de hoy).
+5. Actualiza `spec/ESTADO_PLAN.md`: G3 pasa a "cerrado", próximo paso = G4.
+6. Cierra/comenta los issues de GitHub del milestone "G3 - Cupo atomico por slot": **#13** (backend: `cupos_disponibles` + `UPDATE` atómico condicional), **#14** (frontend: mostrar cupos disponibles en selector de slot).
+7. Detente.
+
+## Contexto que ya no hace falta redecidir
+
+- `packages/shared-types` sigue siendo la única fuente del contrato (ADR-003) — extender `SlotSchema` ahí, nunca duplicar a mano en `apps/api`/`apps/web`.
+- El patrón transaccional de `confirmarAsistencia` (`withTransaction`, `apps/api/src/shared/db-transaction.ts`) ya existe — el `UPDATE` de cupo va dentro de esa misma transacción, no en una aparte.
+- `SlotSchema`/`SlotsResponseSchema` (`packages/shared-types/src/slots.ts`) hoy no tienen `cuposDisponibles` — es la única extensión de schema que pide este gate.
+- El `/code-review` de cierre de Gate 2 (sesión C) dejó 6 hallazgos de simplificación/eficiencia diferidos a propósito (ver `spec/todo.md`, entrada "2026-09-17 (Gate 2 — sesión C)") — no son parte de Gate 3, pero uno de ellos (el `INSERT` de `confirmacion_items` uno por uno en vez de multi-fila) toca la misma transacción que este gate va a modificar; si aparece naturalmente al tocar ese código, evaluarlo, pero no es un requisito de este gate.
+- `packages/shared-types/openapi.json` se commitea, regenerar con `npm run generate:openapi -w packages/shared-types` si se toca `SlotSchema`.
 - Las credenciales/secrets van siempre por variables de entorno — nunca hardcodeadas en código o config.
-- El orden de build es `shared-types` → `apps/api` → `apps/web` — no lo cambies.
-- `packages/shared-types/openapi.json` se commitea, y debe regenerarse (`npm run generate:openapi -w packages/shared-types`) si esta sesión agrega o cambia algún schema.
-- HU-11 (reenviar código) está corregida por ADR-026 — no es parte de esta sesión (Gate 5), pero si tocás algo relacionado con invitaciones no reintroduzcas el criterio viejo ("reenvía el mismo código").
-- El catálogo/slots sembrados son **datos placeholder** explícitos (`apps/api/src/db/seed.ts`) — pendiente reemplazar con el listado real del PDF cuando el usuario lo provea. No es bloqueante para esta sesión.
 
 **No hagas commit.** El usuario comitea siempre — deja el árbol de trabajo listo y dilo explícitamente al terminar.

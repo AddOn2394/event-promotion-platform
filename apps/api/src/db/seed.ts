@@ -54,7 +54,7 @@ async function seedSlots(pool: Pool): Promise<void> {
   }
   for (const slot of SLOTS_PLACEHOLDER) {
     await pool.query(
-      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo) VALUES ($1, $2, $3)",
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES ($1, $2, $3, $3)",
       [slot.inicio, slot.fin, slot.cupoMaximo],
     );
   }
