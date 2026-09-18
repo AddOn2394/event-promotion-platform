@@ -136,13 +136,18 @@ export async function confirmarAsistencia(
     throw new HttpError(409, "Ya existe una confirmación para esta invitación.");
   }
 
-  const [slot, itemsResueltos] = await Promise.all([
-    buscarSlotActivoPorId(input.slotId),
-    resolverSeleccion(input.items),
-  ]);
+  // Slot e ítems se consultan en paralelo, pero el slot se resuelve primero de forma
+  // determinista — si ambos son inválidos, el cliente siempre ve el mismo mensaje sin
+  // importar qué query de Postgres responda primero (antes con Promise.all corría el
+  // riesgo de reportar uno u otro según el orden de resolución interno).
+  const slotPromise = buscarSlotActivoPorId(input.slotId);
+  const itemsPromise = resolverSeleccion(input.items);
+  const slot = await slotPromise;
   if (!slot) {
+    itemsPromise.catch(() => {});
     throw new HttpError(400, "El horario seleccionado no está disponible.");
   }
+  const itemsResueltos = await itemsPromise;
 
   const config = await leerConfiguracionDescuentoVigente();
   const descuento = calcularDescuento(itemsResueltos, config);

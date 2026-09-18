@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { DatetimeSchema, EmailSchema, UuidSchema } from "./primitives.js";
+import { CategoriaCatalogoSchema } from "./catalogo.js";
+import { CentsSchema, DatetimeSchema, EmailSchema, PctSchema, UuidSchema } from "./primitives.js";
 
 // Contrato del admin panel. Gate 2 (ADR-011, ADR-013): login admin + crear invitación.
 // Gate 5 (ADR-013, HU-8/HU-11): listar invitaciones, reenviar código, ver/exportar
@@ -62,7 +63,7 @@ export type ReenviarCodigoResponse = z.infer<typeof ReenviarCodigoResponseSchema
 // del snapshot (ADR-006), nunca de un join contra el catálogo vigente.
 export const ConfirmacionAdminItemSchema = z.object({
   nombre: z.string(),
-  categoria: z.enum(["servicio", "producto"]),
+  categoria: CategoriaCatalogoSchema,
 });
 
 export const ConfirmacionAdminSchema = z.object({
@@ -72,11 +73,11 @@ export const ConfirmacionAdminSchema = z.object({
   estado: EstadoInvitacionAdminSchema,
   slot: z.object({ fechaHoraInicio: DatetimeSchema, fechaHoraFin: DatetimeSchema }).nullable(),
   items: z.array(ConfirmacionAdminItemSchema),
-  subtotalServiciosCents: z.number().int().nullable(),
-  descuentoServiciosPct: z.number().int().nullable(),
-  subtotalProductosCents: z.number().int().nullable(),
-  descuentoProductosPct: z.number().int().nullable(),
-  totalCents: z.number().int().nullable(),
+  subtotalServiciosCents: CentsSchema.nullable(),
+  descuentoServiciosPct: PctSchema.nullable(),
+  subtotalProductosCents: CentsSchema.nullable(),
+  descuentoProductosPct: PctSchema.nullable(),
+  totalCents: CentsSchema.nullable(),
 });
 
 export const ListarConfirmacionesAdminResponseSchema = z.array(ConfirmacionAdminSchema);

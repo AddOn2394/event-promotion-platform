@@ -300,8 +300,13 @@ function centsAQuetzales(cents: number | null): string {
   return cents === null ? "" : (cents / 100).toFixed(2);
 }
 
-function csvEscapar(valor: string): string {
-  return /[",\n]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor;
+// nombreCliente es texto libre que el propio cliente controla (HU-3/HU-4) — un valor que
+// empieza con =/+/-/@ se interpreta como fórmula al abrir el CSV en Excel/Sheets (CSV
+// injection). Se neutraliza con un apóstrofe inicial, el mitigante estándar, antes del
+// escapado de comillas/comas que ya existía.
+function csvEscapar(valorOriginal: string): string {
+  const valor = /^[=+\-@]/.test(valorOriginal) ? `'${valorOriginal}` : valorOriginal;
+  return /[",\n\r]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor;
 }
 
 // HU-8/ADR-013: columnas fijas del CSV. ADR-013 pedía "nombre, apellidos" pero el modelo

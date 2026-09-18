@@ -169,4 +169,27 @@ describe("auth — login de cliente por código (HU-2), integración contra Post
       await pool.query("UPDATE slots SET activo = true");
     }
   });
+
+  it("ADR-028: email+código correctos pero evento terminado no cuenta como intento fallido hacia el rate limiting", async () => {
+    await crearInvitacionDePrueba();
+
+    await pool.query("UPDATE slots SET activo = false");
+    const { rows: slotPasadoRows } = await pool.query<{ idslot: string }>(
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES (now() - interval '5 days', now() - interval '5 days' + interval '2 hours', 10, 10) RETURNING idslot",
+    );
+
+    try {
+      const res = await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: CODIGO });
+      expect(res.status).toBe(401);
+
+      const { rows } = await pool.query<{ count: string }>(
+        "SELECT COUNT(*) FROM intentos_fallidos_login WHERE email = $1 AND scope = 'cliente'",
+        [EMAIL_CLIENTE],
+      );
+      expect(rows[0]?.count).toBe("0");
+    } finally {
+      await pool.query("DELETE FROM slots WHERE idslot = $1", [slotPasadoRows[0]?.idslot]);
+      await pool.query("UPDATE slots SET activo = true");
+    }
+  });
 });

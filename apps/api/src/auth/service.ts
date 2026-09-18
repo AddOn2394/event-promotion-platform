@@ -59,8 +59,12 @@ export async function loginCliente(email: string, codigo: string): Promise<Sesio
     throw new HttpError(401, CREDENCIALES_INVALIDAS);
   }
 
+  // ADR-028: email+código correctos pero evento ya terminado NO cuenta como intento
+  // fallido — a diferencia de las dos ramas de arriba (email inexistente, código
+  // incorrecto), este caso ya exige conocer el código real, que es el objetivo de un
+  // ataque de fuerza bruta y no un paso hacia él, así que exentarlo no debilita el
+  // rate limiting de ADR-022 ni el no-enumeration de ADR-011 (mismo mensaje genérico).
   if (await codigoExpirado()) {
-    await registrarIntentoFallido(email, "cliente");
     throw new HttpError(401, CREDENCIALES_INVALIDAS);
   }
 

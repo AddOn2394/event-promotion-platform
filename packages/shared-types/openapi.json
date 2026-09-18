@@ -600,23 +600,30 @@
             },
             "subtotalServiciosCents": {
               "type": "integer",
-              "nullable": true
+              "nullable": true,
+              "minimum": 0
             },
             "descuentoServiciosPct": {
               "type": "integer",
-              "nullable": true
+              "nullable": true,
+              "minimum": 0,
+              "maximum": 100
             },
             "subtotalProductosCents": {
               "type": "integer",
-              "nullable": true
+              "nullable": true,
+              "minimum": 0
             },
             "descuentoProductosPct": {
               "type": "integer",
-              "nullable": true
+              "nullable": true,
+              "minimum": 0,
+              "maximum": 100
             },
             "totalCents": {
               "type": "integer",
-              "nullable": true
+              "nullable": true,
+              "minimum": 0
             }
           },
           "required": [

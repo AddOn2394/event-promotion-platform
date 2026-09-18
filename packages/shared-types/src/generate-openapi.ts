@@ -12,6 +12,7 @@ import {
   AdminLoginResponseSchema,
   CrearInvitacionRequestSchema,
   CrearInvitacionResponseSchema,
+  ListarConfirmacionesAdminQuerySchema,
   ListarConfirmacionesAdminResponseSchema,
   ListarInvitacionesResponseSchema,
   ReenviarCodigoResponseSchema,
@@ -269,7 +270,7 @@ registry.registerPath({
   method: "get",
   path: "/admin/confirmaciones",
   description: "HU-8 — listado filtrable por estado (query ?estado=), requiere sesión de admin",
-  request: { query: z.object({ estado: z.enum(["confirmada", "cancelada", "sin_respuesta", "rebotada"]).optional() }) },
+  request: { query: ListarConfirmacionesAdminQuerySchema },
   responses: {
     200: {
       description: "Confirmaciones/invitaciones con su estado",

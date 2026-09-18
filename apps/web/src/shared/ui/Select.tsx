@@ -6,7 +6,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
       <select
         ref={ref}
         {...props}
-        className={`w-full rounded-md border border-borde bg-superficie px-3 py-2 text-tinta focus:border-jade ${className ?? ""}`}
+        className={`w-full rounded-md border border-borde-fuerte bg-superficie px-3 py-2 text-tinta focus:border-jade ${className ?? ""}`}
       />
     );
   },
