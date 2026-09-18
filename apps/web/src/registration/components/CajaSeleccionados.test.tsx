@@ -11,6 +11,7 @@ describe("CajaSeleccionados — caja en vivo (ADR-004)", () => {
   it("muestra el % de descuento y el total del preview", () => {
     render(
       <CajaSeleccionados
+        id="caja-servicios"
         titulo="Servicios seleccionados"
         items={ITEMS}
         subtotalCents={50000}
@@ -28,6 +29,7 @@ describe("CajaSeleccionados — caja en vivo (ADR-004)", () => {
     const onQuitar = vi.fn();
     render(
       <CajaSeleccionados
+        id="caja-servicios"
         titulo="Servicios seleccionados"
         items={ITEMS}
         subtotalCents={50000}

@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { AdminLoginRequestSchema, type AdminLoginRequest } from "@event-promotion/shared-types";
+import { Button, Field, Input } from "../../shared/ui";
 import { useAdminLogin } from "../api/useAdminLogin";
 import { useAdminSession } from "../context/AdminSessionContext";
 
@@ -29,27 +30,33 @@ export function AdminLoginPage() {
   });
 
   return (
-    <main>
-      <h1>Login administrador</h1>
-      <form onSubmit={onSubmit} noValidate>
-        <div>
-          <label htmlFor="email">Email</label>
-          <input id="email" type="email" autoComplete="username" {...register("email")} />
-          {errors.email ? <p role="alert">{errors.email.message}</p> : null}
-        </div>
+    <main className="flex min-h-screen items-center justify-center bg-papel px-4 py-12">
+      <div className="w-full max-w-sm">
+        <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-jade">
+          Feria de Promociones
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-bold text-tinta">Login administrador</h1>
 
-        <div>
-          <label htmlFor="password">Contraseña</label>
-          <input id="password" type="password" autoComplete="current-password" {...register("password")} />
-          {errors.password ? <p role="alert">{errors.password.message}</p> : null}
-        </div>
+        <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
+          <Field label="Email" htmlFor="email" error={errors.email?.message}>
+            <Input type="email" autoComplete="username" {...register("email")} />
+          </Field>
 
-        {login.isError ? <p role="alert">{login.error.message}</p> : null}
+          <Field label="Contraseña" htmlFor="password" error={errors.password?.message}>
+            <Input type="password" autoComplete="current-password" {...register("password")} />
+          </Field>
 
-        <button type="submit" disabled={login.isPending}>
-          {login.isPending ? "Ingresando…" : "Ingresar"}
-        </button>
-      </form>
+          {login.isError ? (
+            <p role="alert" className="text-sm text-alerta">
+              {login.error.message}
+            </p>
+          ) : null}
+
+          <Button type="submit" disabled={login.isPending} className="mt-2">
+            {login.isPending ? "Ingresando…" : "Ingresar"}
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }

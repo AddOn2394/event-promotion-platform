@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -7,6 +8,7 @@ import {
   type LoginClienteRequest,
 } from "@event-promotion/shared-types";
 import { apiFetch } from "../../shared/api/client";
+import { Button, Field, Input } from "../../shared/ui";
 import { useLoginCliente } from "../api/useLoginCliente";
 import { useClienteSession } from "../context/ClienteSessionContext";
 
@@ -29,6 +31,7 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const { setSession } = useClienteSession();
   const login = useLoginCliente();
+  const [redirigiendo, setRedirigiendo] = useState(false);
 
   // Prellenado desde el link de invitación (construirLinkInvitacion en
   // apps/api/src/admin/service.ts) — formato /login?email=....
@@ -47,40 +50,50 @@ export function LoginPage() {
     login.mutate(values, {
       onSuccess: async (data) => {
         setSession({ email: data.email, nombreCliente: data.nombreCliente });
+        setRedirigiendo(true);
         navigate(await decidirDestinoTrasLogin());
       },
     });
   });
 
   return (
-    <main>
-      <h1>Ingresar</h1>
-      <form onSubmit={onSubmit} noValidate>
-        <div>
-          <label htmlFor="email">Email</label>
-          <input id="email" type="email" autoComplete="username" {...register("email")} />
-          {errors.email ? <p role="alert">{errors.email.message}</p> : null}
-        </div>
+    <main className="flex min-h-screen items-center justify-center bg-papel px-4 py-12">
+      <div className="w-full max-w-sm">
+        <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-jade">
+          Feria de Promociones
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-bold text-tinta">Ingresar</h1>
+        <p className="mt-2 text-sm text-apagado">
+          Usá el email y el código de 6 dígitos que recibiste por correo.
+        </p>
 
-        <div>
-          <label htmlFor="codigo">Código de acceso (6 dígitos)</label>
-          <input
-            id="codigo"
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            autoComplete="one-time-code"
-            {...register("codigo")}
-          />
-          {errors.codigo ? <p role="alert">{errors.codigo.message}</p> : null}
-        </div>
+        <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
+          <Field label="Email" htmlFor="email" error={errors.email?.message}>
+            <Input type="email" autoComplete="username" {...register("email")} />
+          </Field>
 
-        {login.isError ? <p role="alert">{login.error.message}</p> : null}
+          <Field label="Código de acceso (6 dígitos)" htmlFor="codigo" error={errors.codigo?.message}>
+            <Input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              className="font-mono text-lg tracking-[0.3em]"
+              {...register("codigo")}
+            />
+          </Field>
 
-        <button type="submit" disabled={login.isPending}>
-          {login.isPending ? "Ingresando…" : "Ingresar"}
-        </button>
-      </form>
+          {login.isError ? (
+            <p role="alert" className="text-sm text-alerta">
+              {login.error.message}
+            </p>
+          ) : null}
+
+          <Button type="submit" disabled={login.isPending || redirigiendo} className="mt-2">
+            {login.isPending || redirigiendo ? "Ingresando…" : "Ingresar"}
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }

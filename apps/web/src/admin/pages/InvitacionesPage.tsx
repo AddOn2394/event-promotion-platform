@@ -7,6 +7,7 @@ import {
   type CrearInvitacionRequest,
 } from "@event-promotion/shared-types";
 import { ApiError } from "../../shared/api/client";
+import { Button, Field, Input, Table } from "../../shared/ui";
 import { useCrearInvitacion } from "../api/useCrearInvitacion";
 import { useListarInvitaciones } from "../api/useListarInvitaciones";
 import { useReenviarCodigo } from "../api/useReenviarCodigo";
@@ -27,14 +28,13 @@ export function InvitacionesPage() {
   const invitacionesQuery = useListarInvitaciones();
   const reenviarCodigo = useReenviarCodigo();
 
-  // Guarda de UX, no de seguridad — GET /admin/invitaciones no existe, así que no hay
-  // ninguna llamada que dispare un 401 hasta el submit. El 401 real del POST sigue
-  // siendo la autoridad (ver el catch de más abajo).
+  const sesionExpirada = invitacionesQuery.error instanceof ApiError && invitacionesQuery.error.status === 401;
+
   useEffect(() => {
-    if (!session) {
+    if (!session || sesionExpirada) {
       navigate("/admin/login", { replace: true });
     }
-  }, [session, navigate]);
+  }, [session, sesionExpirada, navigate]);
 
   const {
     register,
@@ -60,78 +60,96 @@ export function InvitacionesPage() {
   if (!session) return null;
 
   return (
-    <main>
-      <AdminNav />
-      <h1>Invitar cliente</h1>
-      <p>Sesión: {session.email}</p>
-
-      <form onSubmit={onSubmit} noValidate>
+    <main className="min-h-screen bg-papel px-4 py-10">
+      <div className="mx-auto flex max-w-5xl flex-col gap-6">
+        <AdminNav />
         <div>
-          <label htmlFor="email">Email del cliente</label>
-          <input id="email" type="email" {...register("email")} />
-          {errors.email ? <p role="alert">{errors.email.message}</p> : null}
+          <h1 className="font-display text-2xl font-bold text-tinta">Invitar cliente</h1>
+          <p className="mt-1 text-sm text-apagado">Sesión: {session.email}</p>
         </div>
 
+        <form onSubmit={onSubmit} noValidate className="flex max-w-sm flex-col gap-4">
+          <Field label="Email del cliente" htmlFor="email" error={errors.email?.message}>
+            <Input type="email" {...register("email")} />
+          </Field>
+
+          <Field label="Nombre (opcional)" htmlFor="nombreCliente" error={errors.nombreCliente?.message}>
+            <Input
+              type="text"
+              {...register("nombreCliente", { setValueAs: (v: string) => (v === "" ? undefined : v) })}
+            />
+          </Field>
+
+          {crearInvitacion.isError ? (
+            <p role="alert" className="text-sm text-alerta">
+              {crearInvitacion.error instanceof ApiError && crearInvitacion.error.status === 409
+                ? "Ya existe una invitación para este email."
+                : crearInvitacion.error.message}
+            </p>
+          ) : null}
+
+          {crearInvitacion.isSuccess ? (
+            <p role="status" className="text-sm text-jade">
+              Invitación creada y código enviado.
+            </p>
+          ) : null}
+
+          <Button type="submit" disabled={crearInvitacion.isPending} className="self-start">
+            {crearInvitacion.isPending ? "Enviando…" : "Invitar"}
+          </Button>
+        </form>
+
         <div>
-          <label htmlFor="nombreCliente">Nombre (opcional)</label>
-          <input
-            id="nombreCliente"
-            type="text"
-            {...register("nombreCliente", { setValueAs: (v: string) => (v === "" ? undefined : v) })}
-          />
-          {errors.nombreCliente ? <p role="alert">{errors.nombreCliente.message}</p> : null}
+          <h2 className="font-display text-lg font-bold text-tinta">Invitaciones</h2>
+          {invitacionesQuery.isLoading ? <p className="mt-2 text-sm text-apagado">Cargando…</p> : null}
+          {invitacionesQuery.isError ? (
+            <p role="alert" className="mt-2 text-sm text-alerta">
+              No se pudo cargar el listado.
+            </p>
+          ) : null}
+          {invitacionesQuery.data ? (
+            <Table className="mt-3">
+              <thead>
+                <tr className="border-b border-borde text-left text-xs uppercase tracking-wide text-apagado">
+                  <th scope="col" className="py-2 pr-4">Email</th>
+                  <th scope="col" className="py-2 pr-4">Nombre</th>
+                  <th scope="col" className="py-2 pr-4">Estado</th>
+                  <th scope="col" className="py-2">Acción (HU-11)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invitacionesQuery.data.map((invitacion) => (
+                  <tr key={invitacion.idinvitacion} className="border-b border-borde/60">
+                    <td className="py-2 pr-4 text-tinta">{invitacion.email}</td>
+                    <td className="py-2 pr-4 text-tinta">{invitacion.nombreCliente ?? "—"}</td>
+                    <td className="py-2 pr-4 text-tinta">{ETIQUETA_ESTADO[invitacion.estado] ?? invitacion.estado}</td>
+                    <td className="py-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={reenviarCodigo.isPending}
+                        onClick={() => reenviarCodigo.mutate(invitacion.idinvitacion)}
+                      >
+                        Reenviar código
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          ) : null}
+          {reenviarCodigo.isSuccess ? (
+            <p role="status" className="mt-2 text-sm text-jade">
+              Código reenviado — el anterior ya no sirve para iniciar sesión.
+            </p>
+          ) : null}
+          {reenviarCodigo.isError ? (
+            <p role="alert" className="mt-2 text-sm text-alerta">
+              {reenviarCodigo.error.message}
+            </p>
+          ) : null}
         </div>
-
-        {crearInvitacion.isError ? (
-          <p role="alert">
-            {crearInvitacion.error instanceof ApiError && crearInvitacion.error.status === 409
-              ? "Ya existe una invitación para este email."
-              : crearInvitacion.error.message}
-          </p>
-        ) : null}
-
-        {crearInvitacion.isSuccess ? <p role="status">Invitación creada y código enviado.</p> : null}
-
-        <button type="submit" disabled={crearInvitacion.isPending}>
-          {crearInvitacion.isPending ? "Enviando…" : "Invitar"}
-        </button>
-      </form>
-
-      <h2>Invitaciones</h2>
-      {invitacionesQuery.isLoading ? <p>Cargando…</p> : null}
-      {invitacionesQuery.isError ? <p role="alert">No se pudo cargar el listado.</p> : null}
-      {invitacionesQuery.data ? (
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Email</th>
-              <th scope="col">Nombre</th>
-              <th scope="col">Estado</th>
-              <th scope="col">Acción (HU-11)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invitacionesQuery.data.map((invitacion) => (
-              <tr key={invitacion.idinvitacion}>
-                <td>{invitacion.email}</td>
-                <td>{invitacion.nombreCliente ?? "—"}</td>
-                <td>{ETIQUETA_ESTADO[invitacion.estado] ?? invitacion.estado}</td>
-                <td>
-                  <button
-                    type="button"
-                    disabled={reenviarCodigo.isPending}
-                    onClick={() => reenviarCodigo.mutate(invitacion.idinvitacion)}
-                  >
-                    Reenviar código
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
-      {reenviarCodigo.isSuccess ? <p role="status">Código reenviado — el anterior ya no sirve para iniciar sesión.</p> : null}
-      {reenviarCodigo.isError ? <p role="alert">{reenviarCodigo.error.message}</p> : null}
+      </div>
     </main>
   );
 }

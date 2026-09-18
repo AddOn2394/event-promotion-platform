@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   EditarConfirmacionResponseSchema,
   type EditarConfirmacionRequest,
@@ -7,6 +7,7 @@ import {
 import { apiFetch } from "../../shared/api/client";
 
 export function useEditarConfirmacion() {
+  const queryClient = useQueryClient();
   return useMutation<EditarConfirmacionResponse, Error, EditarConfirmacionRequest>({
     mutationFn: async (body) => {
       const data = await apiFetch<unknown>("/confirmaciones/mia", {
@@ -14,6 +15,9 @@ export function useEditarConfirmacion() {
         body: JSON.stringify(body),
       });
       return EditarConfirmacionResponseSchema.parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["confirmacion-propia"] });
     },
   });
 }

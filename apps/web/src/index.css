@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-tinta: #10233a;
+  --color-papel: #faf8f4;
+  --color-superficie: #ffffff;
+  --color-jade: #0f7a5a;
+  --color-borde: #dcd6cc;
+  --color-alerta: #9b2c2c;
+  --color-apagado: #5a6472;
+
+  --font-display: "Archivo", sans-serif;
+  --font-sans: "Public Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-papel text-tinta font-sans;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-jade);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

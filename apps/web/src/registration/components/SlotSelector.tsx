@@ -1,5 +1,6 @@
 import type { UseFormRegisterReturn } from "react-hook-form";
 import type { Slot } from "@event-promotion/shared-types";
+import { Field, Select } from "../../shared/ui";
 
 type Props = {
   slots: Slot[];
@@ -24,17 +25,15 @@ function formatearSlot(slot: Slot): string {
 // el servidor sigue siendo quien rechaza si el cupo se agota entre cargar y enviar el formulario.
 export function SlotSelector({ slots, registration, error }: Props) {
   return (
-    <div>
-      <label htmlFor="slotId">Horario</label>
-      <select id="slotId" {...registration}>
+    <Field label="Horario" htmlFor="slotId" error={error}>
+      <Select {...registration}>
         <option value="">Seleccioná un horario</option>
         {slots.map((slot) => (
           <option key={slot.id} value={slot.id} disabled={slot.cuposDisponibles === 0}>
             {formatearSlot(slot)}
           </option>
         ))}
-      </select>
-      {error ? <p role="alert">{error}</p> : null}
-    </div>
+      </Select>
+    </Field>
   );
 }
