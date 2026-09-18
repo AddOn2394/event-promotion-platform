@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import { pool } from "../db/pool.js";
 import { HttpError } from "../shared/http-error.js";
+import { intentosFallidosExcedidos, limpiarIntentosFallidos, registrarIntentoFallido } from "../shared/rate-limit.js";
+import { obtenerFinDelEvento } from "../slots/service.js";
 
 type InvitacionAuthRow = {
   idinvitacion: string;
@@ -15,22 +17,50 @@ export type SesionCliente = {
   nombreCliente: string | null;
 };
 
-// HU-2: mensaje genérico en cualquier fallo — nunca revela si el email existe (no
-// enumeration). Rate limiting (ADR-022) es exit criterio de Gate 4, no de Gate 2.
+// HU-2: mensaje genérico en cualquier fallo (email inexistente, código inválido o código
+// expirado) — nunca revela cuál de los tres pasó (no enumeration, ADR-011).
 const CREDENCIALES_INVALIDAS = "Email o código inválido.";
+const DEMASIADOS_INTENTOS = "Demasiados intentos. Probá de nuevo en unos minutos.";
+
+// ADR-011, párrafo "Vigencia del código" (resolvido con el usuario en Gate 4 tras un
+// contradicción textual dentro del propio ADR): el código vive mientras viva la
+// invitación y expira únicamente cuando termina el evento completo — el slot de una
+// confirmación individual nunca gobierna la vigencia de la sesión, solo el deadline de
+// edición (ADR-010). Sin una entidad "evento" propia, el fin del evento se deriva de
+// MAX(fecha_hora_fin) de slots activos (decidido con el usuario en Gate 4).
+async function codigoExpirado(): Promise<boolean> {
+  const finEvento = await obtenerFinDelEvento();
+  if (!finEvento) {
+    // Sin slots activos no hay forma de determinar expiración — no bloquea el login
+    // (evitar que la ausencia de slots deje a todos los clientes sin acceso).
+    return false;
+  }
+  return new Date() > finEvento;
+}
 
 export async function loginCliente(email: string, codigo: string): Promise<SesionCliente> {
+  if (await intentosFallidosExcedidos(email, "cliente")) {
+    throw new HttpError(429, DEMASIADOS_INTENTOS);
+  }
+
   const { rows } = await pool.query<InvitacionAuthRow>(
     "SELECT idinvitacion, nombre_cliente, codigo_acceso_hash, usada_en FROM invitaciones WHERE email = $1",
     [email],
   );
   const invitacion = rows[0];
   if (!invitacion) {
+    await registrarIntentoFallido(email, "cliente");
     throw new HttpError(401, CREDENCIALES_INVALIDAS);
   }
 
   const codigoValido = await bcrypt.compare(codigo, invitacion.codigo_acceso_hash);
   if (!codigoValido) {
+    await registrarIntentoFallido(email, "cliente");
+    throw new HttpError(401, CREDENCIALES_INVALIDAS);
+  }
+
+  if (await codigoExpirado()) {
+    await registrarIntentoFallido(email, "cliente");
     throw new HttpError(401, CREDENCIALES_INVALIDAS);
   }
 
@@ -39,6 +69,8 @@ export async function loginCliente(email: string, codigo: string): Promise<Sesio
       invitacion.idinvitacion,
     ]);
   }
+
+  await limpiarIntentosFallidos(email, "cliente");
 
   return {
     idinvitacion: invitacion.idinvitacion,

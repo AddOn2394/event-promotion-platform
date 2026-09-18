@@ -15,6 +15,7 @@ const SLOT = {
   id: "22222222-2222-2222-2222-222222222222",
   fechaHoraInicio: "2026-10-01T10:00:00.000Z",
   fechaHoraFin: "2026-10-01T12:00:00.000Z",
+  cuposDisponibles: 5,
 };
 
 describe("ConfirmarPage — nombreCliente vacío no debe romper el submit (bug de setValueAs)", () => {

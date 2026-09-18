@@ -305,6 +305,645 @@
           "nombreCliente",
           "creadaEn"
         ]
+      },
+      "EditarConfirmacionRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "catalogoItemId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "categoria": {
+                  "type": "string",
+                  "enum": [
+                    "servicio",
+                    "producto"
+                  ]
+                }
+              },
+              "required": [
+                "catalogoItemId",
+                "categoria"
+              ]
+            },
+            "minItems": 1
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nombreCliente": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "items",
+          "slotId"
+        ]
+      },
+      "EditarConfirmacionResponse": {
+        "type": "object",
+        "properties": {
+          "subtotalServiciosCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "descuentoServiciosPct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "subtotalProductosCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "descuentoProductosPct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "totalCents": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "subtotalServiciosCents",
+          "descuentoServiciosPct",
+          "subtotalProductosCents",
+          "descuentoProductosPct",
+          "totalCents"
+        ]
+      },
+      "CancelarConfirmacionResponse": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "type": "string",
+            "enum": [
+              "cancelada"
+            ]
+          }
+        },
+        "required": [
+          "estado"
+        ]
+      },
+      "ConfirmacionPropiaResponse": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "type": "string",
+            "enum": [
+              "confirmada",
+              "cancelada"
+            ]
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nombreCliente": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "catalogoItemId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "categoria": {
+                  "type": "string",
+                  "enum": [
+                    "servicio",
+                    "producto"
+                  ]
+                },
+                "nombre": {
+                  "type": "string"
+                },
+                "precioCents": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "catalogoItemId",
+                "categoria",
+                "nombre",
+                "precioCents"
+              ]
+            }
+          },
+          "subtotalServiciosCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "descuentoServiciosPct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "subtotalProductosCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "descuentoProductosPct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "totalCents": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "estado",
+          "slotId",
+          "nombreCliente",
+          "items",
+          "subtotalServiciosCents",
+          "descuentoServiciosPct",
+          "subtotalProductosCents",
+          "descuentoProductosPct",
+          "totalCents"
+        ]
+      },
+      "ListarInvitacionesResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "idinvitacion": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "nombreCliente": {
+              "type": "string",
+              "nullable": true
+            },
+            "creadaEn": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "estado": {
+              "type": "string",
+              "enum": [
+                "confirmada",
+                "cancelada",
+                "sin_respuesta",
+                "rebotada"
+              ]
+            }
+          },
+          "required": [
+            "idinvitacion",
+            "email",
+            "nombreCliente",
+            "creadaEn",
+            "estado"
+          ]
+        }
+      },
+      "ReenviarCodigoResponse": {
+        "type": "object",
+        "properties": {
+          "idinvitacion": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "idinvitacion"
+        ]
+      },
+      "ListarConfirmacionesAdminResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "idinvitacion": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "nombreCliente": {
+              "type": "string",
+              "nullable": true
+            },
+            "estado": {
+              "type": "string",
+              "enum": [
+                "confirmada",
+                "cancelada",
+                "sin_respuesta",
+                "rebotada"
+              ]
+            },
+            "slot": {
+              "type": "object",
+              "nullable": true,
+              "properties": {
+                "fechaHoraInicio": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fechaHoraFin": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "fechaHoraInicio",
+                "fechaHoraFin"
+              ]
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "categoria": {
+                    "type": "string",
+                    "enum": [
+                      "servicio",
+                      "producto"
+                    ]
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "categoria"
+                ]
+              }
+            },
+            "subtotalServiciosCents": {
+              "type": "integer",
+              "nullable": true
+            },
+            "descuentoServiciosPct": {
+              "type": "integer",
+              "nullable": true
+            },
+            "subtotalProductosCents": {
+              "type": "integer",
+              "nullable": true
+            },
+            "descuentoProductosPct": {
+              "type": "integer",
+              "nullable": true
+            },
+            "totalCents": {
+              "type": "integer",
+              "nullable": true
+            }
+          },
+          "required": [
+            "idinvitacion",
+            "email",
+            "nombreCliente",
+            "estado",
+            "slot",
+            "items",
+            "subtotalServiciosCents",
+            "descuentoServiciosPct",
+            "subtotalProductosCents",
+            "descuentoProductosPct",
+            "totalCents"
+          ]
+        }
+      },
+      "CatalogoAdminResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nombre": {
+              "type": "string"
+            },
+            "categoria": {
+              "type": "string",
+              "enum": [
+                "servicio",
+                "producto"
+              ]
+            },
+            "precioCents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "activo": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "nombre",
+            "categoria",
+            "precioCents",
+            "activo"
+          ]
+        }
+      },
+      "CatalogoItemAdmin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "categoria": {
+            "type": "string",
+            "enum": [
+              "servicio",
+              "producto"
+            ]
+          },
+          "precioCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "activo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "nombre",
+          "categoria",
+          "precioCents",
+          "activo"
+        ]
+      },
+      "CrearCatalogoItemRequest": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "minLength": 1
+          },
+          "categoria": {
+            "type": "string",
+            "enum": [
+              "servicio",
+              "producto"
+            ]
+          },
+          "precioCents": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "nombre",
+          "categoria",
+          "precioCents"
+        ]
+      },
+      "ActualizarCatalogoItemRequest": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "minLength": 1
+          },
+          "categoria": {
+            "type": "string",
+            "enum": [
+              "servicio",
+              "producto"
+            ]
+          },
+          "precioCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "activo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nombre",
+          "categoria",
+          "precioCents",
+          "activo"
+        ]
+      },
+      "SlotsAdminResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "fechaHoraInicio": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "fechaHoraFin": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "cupoMaximo": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "cuposDisponibles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "activo": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "fechaHoraInicio",
+            "fechaHoraFin",
+            "cupoMaximo",
+            "cuposDisponibles",
+            "activo"
+          ]
+        }
+      },
+      "SlotAdmin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fechaHoraInicio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fechaHoraFin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cupoMaximo": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "cuposDisponibles": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "activo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "fechaHoraInicio",
+          "fechaHoraFin",
+          "cupoMaximo",
+          "cuposDisponibles",
+          "activo"
+        ]
+      },
+      "CrearSlotRequest": {
+        "type": "object",
+        "properties": {
+          "fechaHoraInicio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fechaHoraFin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cupoMaximo": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "fechaHoraInicio",
+          "fechaHoraFin",
+          "cupoMaximo"
+        ]
+      },
+      "ActualizarSlotRequest": {
+        "type": "object",
+        "properties": {
+          "fechaHoraInicio": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fechaHoraFin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cupoMaximo": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "activo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fechaHoraInicio",
+          "fechaHoraFin",
+          "cupoMaximo",
+          "activo"
+        ]
+      },
+      "ConfiguracionEvento": {
+        "type": "object",
+        "properties": {
+          "diasDeadlineEdicion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "diasDeadlineEdicion"
+        ]
+      },
+      "ActualizarConfiguracionEventoRequest": {
+        "type": "object",
+        "properties": {
+          "diasDeadlineEdicion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "diasDeadlineEdicion"
+        ]
+      },
+      "ActualizarConfiguracionDescuentoRequest": {
+        "type": "object",
+        "properties": {
+          "minServicios3pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "minServicios5pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "montoMinimo5pctServiciosCents": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "minProductos3pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "minProductos5pct": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": [
+          "minServicios3pct",
+          "minServicios5pct",
+          "montoMinimo5pctServiciosCents",
+          "minProductos3pct",
+          "minProductos5pct"
+        ]
       }
     },
     "parameters": {}
@@ -369,6 +1008,24 @@
             "description": "Ya existe una invitación para ese email (HU-1)"
           }
         }
+      },
+      "get": {
+        "description": "HU-11 — listado de invitaciones con estado (confirmada/cancelada/sin_respuesta/rebotada), requiere sesión de admin",
+        "responses": {
+          "200": {
+            "description": "Invitaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarInvitacionesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
       }
     },
     "/auth/login": {
@@ -395,7 +1052,10 @@
             }
           },
           "401": {
-            "description": "Email o código inválido (mensaje genérico, sin enumeration, ADR-011)"
+            "description": "Email, código inválido o código expirado (mensaje genérico, sin enumeration, ADR-011)"
+          },
+          "429": {
+            "description": "5+ intentos fallidos en 15 minutos para ese email (ADR-022, sin importar la IP)"
           }
         }
       }
@@ -490,7 +1150,521 @@
             "description": "Sin sesión de cliente"
           },
           "409": {
-            "description": "Ya existe una confirmación para esta invitación (HU-4/HU-5/HU-7 vía PATCH, no un segundo POST)"
+            "description": "Ya existe una confirmación 'confirmada' para esta invitación (editar es PATCH, HU-4/HU-5)"
+          }
+        }
+      }
+    },
+    "/confirmaciones/mia": {
+      "get": {
+        "description": "HU-4/HU-5 — selección/slot/estado vigentes de la propia invitación (requiere sesión de cliente)",
+        "responses": {
+          "200": {
+            "description": "Confirmación propia",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmacionPropiaResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de cliente"
+          },
+          "404": {
+            "description": "La invitación todavía no tiene ninguna confirmación"
+          }
+        }
+      },
+      "patch": {
+        "description": "HU-4/HU-5 — editar selección y/o cambiar de slot antes del deadline (requiere sesión de cliente)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarConfirmacionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmación actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditarConfirmacionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Deadline de edición cerrado, slotId/ítem inválido, o slot destino sin cupo"
+          },
+          "401": {
+            "description": "Sin sesión de cliente"
+          },
+          "404": {
+            "description": "No existe una confirmación para editar"
+          },
+          "409": {
+            "description": "La confirmación está cancelada — reconfirmar con POST /confirmaciones (HU-7)"
+          }
+        }
+      }
+    },
+    "/confirmaciones/mia/cancelar": {
+      "post": {
+        "description": "HU-6 — cancelar asistencia antes del deadline (requiere sesión de cliente)",
+        "responses": {
+          "200": {
+            "description": "Confirmación cancelada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelarConfirmacionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Deadline de edición cerrado"
+          },
+          "401": {
+            "description": "Sin sesión de cliente"
+          },
+          "404": {
+            "description": "No existe una confirmación para cancelar"
+          },
+          "409": {
+            "description": "La confirmación ya estaba cancelada"
+          }
+        }
+      }
+    },
+    "/admin/invitaciones/{id}/reenviar": {
+      "post": {
+        "description": "HU-11 (ADR-026) — reenviar código: genera uno nuevo, invalida el anterior. Requiere sesión de admin",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Código reenviado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReenviarCodigoResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          },
+          "404": {
+            "description": "Invitación no encontrada"
+          }
+        }
+      }
+    },
+    "/admin/confirmaciones": {
+      "get": {
+        "description": "HU-8 — listado filtrable por estado (query ?estado=), requiere sesión de admin",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "confirmada",
+                "cancelada",
+                "sin_respuesta",
+                "rebotada"
+              ]
+            },
+            "required": false,
+            "name": "estado",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Confirmaciones/invitaciones con su estado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarConfirmacionesAdminResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      }
+    },
+    "/admin/confirmaciones/export.csv": {
+      "get": {
+        "description": "HU-8 (ADR-013) — export CSV con columnas fijas, snapshot congelado (ADR-006). Requiere sesión de admin",
+        "responses": {
+          "200": {
+            "description": "Archivo CSV"
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      }
+    },
+    "/admin/catalogo": {
+      "get": {
+        "description": "HU-9 — catálogo completo incl. inactivos, requiere sesión de admin",
+        "responses": {
+          "200": {
+            "description": "Catálogo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogoAdminResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      },
+      "post": {
+        "description": "HU-9 — crear ítem de catálogo, requiere sesión de admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearCatalogoItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ítem creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogoItemAdmin"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      }
+    },
+    "/admin/catalogo/{id}": {
+      "patch": {
+        "description": "HU-9 — reemplazo completo del ítem (incl. activo, para reactivar), requiere sesión de admin",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarCatalogoItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ítem actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogoItemAdmin"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          },
+          "404": {
+            "description": "Ítem no encontrado"
+          }
+        }
+      },
+      "delete": {
+        "description": "HU-9 (ADR-007) — soft-delete (activo=false), requiere sesión de admin",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Desactivado"
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          },
+          "404": {
+            "description": "Ítem no encontrado"
+          }
+        }
+      }
+    },
+    "/admin/slots": {
+      "get": {
+        "description": "HU-10 — slots completos incl. inactivos, requiere sesión de admin",
+        "responses": {
+          "200": {
+            "description": "Slots",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlotsAdminResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      },
+      "post": {
+        "description": "HU-10 — crear slot, requiere sesión de admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearSlotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Slot creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlotAdmin"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      }
+    },
+    "/admin/slots/{id}": {
+      "patch": {
+        "description": "HU-10 (ADR-009) — reemplazo completo del slot; reducir cupoMaximo por debajo de las reservas actuales se rechaza. Requiere sesión de admin",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarSlotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Slot actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlotAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nuevo cupoMaximo menor que las reservas actuales"
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          },
+          "404": {
+            "description": "Slot no encontrado"
+          }
+        }
+      },
+      "delete": {
+        "description": "HU-10 (ADR-007) — soft-delete (activo=false), requiere sesión de admin",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Desactivado"
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          },
+          "404": {
+            "description": "Slot no encontrado"
+          }
+        }
+      }
+    },
+    "/admin/configuracion": {
+      "get": {
+        "description": "HU-10 (ADR-010) — N días de deadline de edición, requiere sesión de admin",
+        "responses": {
+          "200": {
+            "description": "Configuración vigente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionEvento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      },
+      "patch": {
+        "description": "HU-10 (ADR-010) — actualizar N días de deadline, requiere sesión de admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarConfiguracionEventoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuración actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionEvento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      }
+    },
+    "/admin/configuracion/descuento": {
+      "get": {
+        "description": "HU-12 (ADR-023) — umbrales de descuento vigentes, requiere sesión de admin",
+        "responses": {
+          "200": {
+            "description": "Configuración vigente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionDescuento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      },
+      "patch": {
+        "description": "HU-12 (ADR-023) — actualizar umbrales; rechaza 5% más débil que 3% (coherencia validada en el schema). Requiere sesión de admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarConfiguracionDescuentoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuración actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracionDescuento"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Umbral de 5% más débil que el de 3% para alguna categoría"
+          },
+          "401": {
+            "description": "Sin sesión de admin"
+          }
+        }
+      }
+    },
+    "/webhooks/resend": {
+      "post": {
+        "description": "ADR-024 — webhook de Resend (firmado con Svix), actualiza notificaciones.estado_envio. Sin auth de sesión",
+        "responses": {
+          "200": {
+            "description": "Procesado"
+          },
+          "400": {
+            "description": "Firma inválida"
           }
         }
       }

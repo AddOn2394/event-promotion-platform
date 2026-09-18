@@ -23,6 +23,18 @@ async function asegurarConfiguracionDescuento(): Promise<void> {
   }
 }
 
+// N días de deadline (ADR-010) — mismo valor default que apps/api/src/db/seed.ts.
+export const FIXTURE_DIAS_DEADLINE_EDICION = 3;
+
+async function asegurarConfiguracionEvento(): Promise<void> {
+  const { rows } = await pool.query("SELECT 1 FROM configuracion_evento");
+  if (rows.length === 0) {
+    await pool.query("INSERT INTO configuracion_evento (dias_deadline_edicion) VALUES ($1)", [
+      FIXTURE_DIAS_DEADLINE_EDICION,
+    ]);
+  }
+}
+
 export async function seedFixtures(): Promise<Fixtures> {
   const passwordHash = await bcrypt.hash(FIXTURE_ADMIN_PASSWORD, 10);
   await pool.query(
@@ -32,6 +44,7 @@ export async function seedFixtures(): Promise<Fixtures> {
   );
 
   await asegurarConfiguracionDescuento();
+  await asegurarConfiguracionEvento();
 
   const { rows: servicioBaratoRows } = await pool.query<{ idcatalogo: string }>(
     "INSERT INTO catalogo_items (nombre, categoria, precio_cents) VALUES ('TEST FIXTURE servicio barato', 'servicio', 50000) RETURNING idcatalogo",
@@ -66,7 +79,9 @@ export async function seedFixtures(): Promise<Fixtures> {
 // se resetea aparte — confirmar decrementa el contador del slot fixture y, sin este reset,
 // decae entre tests dentro del mismo archivo hasta agotarlo (ADR-009).
 export async function limpiarTablasTransaccionales(): Promise<void> {
-  await pool.query("TRUNCATE confirmaciones, confirmacion_items, notificaciones, invitaciones CASCADE");
+  await pool.query(
+    "TRUNCATE confirmaciones, confirmacion_items, notificaciones, invitaciones, intentos_fallidos_login CASCADE",
+  );
   await pool.query("UPDATE slots SET cupos_disponibles = cupo_maximo");
 }
 

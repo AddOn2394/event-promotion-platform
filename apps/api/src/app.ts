@@ -8,6 +8,7 @@ import { catalogRouter } from "./catalog/routes.js";
 import { registrationRouter } from "./registration/routes.js";
 import { HttpError } from "./shared/http-error.js";
 import { slotsRouter } from "./slots/routes.js";
+import { webhooksRouter } from "./webhooks/routes.js";
 
 // Separado de index.ts para que los tests de integración puedan montar la app con
 // supertest sin abrir un puerto real (app.listen()).
@@ -25,6 +26,12 @@ export function createApp(): Express {
   // credentials:true + origin exacto (nunca "*") porque el navegador solo adjunta la
   // cookie httpOnly de sesión (ADR-011/013) en una respuesta CORS con un origin explícito.
   app.use(cors({ origin: getFrontendUrl(), credentials: true }));
+
+  // Montado antes de express.json(): webhooksRouter necesita el body crudo (express.raw())
+  // para verificar la firma Svix del webhook de Resend (ADR-024) — express.json() global
+  // consumiría el stream y dejaría solo el objeto ya parseado.
+  app.use(webhooksRouter);
+
   app.use(express.json());
   app.use(cookieParser());
 

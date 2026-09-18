@@ -155,7 +155,7 @@ Ambos roles requieren autenticación propia desde el primer acceso.
 
 **Criterios de aceptación**:
 - [ ] Listado filtrable por estado: confirmada / cancelada / sin respuesta (`usada_en IS NULL` y sin rebote) / **rebotada** (`notificaciones.estado_envio = 'rebotado'` para el tipo `invitacion`) — estos 4 estados nunca se agrupan entre sí (ADR-024)
-- [ ] Exporta CSV con columnas fijas: nombre, apellidos, email, slot, servicios, productos, subtotal servicios, % descuento servicios, subtotal productos, % descuento productos, total, estado (ADR-013)
+- [ ] Exporta CSV con columnas fijas: nombre, email, slot, servicios, productos, subtotal servicios, % descuento servicios, subtotal productos, % descuento productos, total, estado (ADR-013, corregido por ADR-027: una sola columna "nombre" — el modelo de datos no tiene un campo `apellidos` separado, `invitaciones.nombre_cliente` es texto libre desde Gate 2)
 - [ ] Los datos exportados son el snapshot congelado (ADR-006), no un recálculo contra el catálogo actual ni contra la configuración de descuento vigente (ADR-023)
 
 ### HU-9: Ventas gestiona el catálogo

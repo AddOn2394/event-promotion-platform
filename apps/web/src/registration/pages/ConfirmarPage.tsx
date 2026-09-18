@@ -81,6 +81,12 @@ export function ConfirmarPage() {
           setSession(null);
           navigate("/login", { replace: true });
         }
+        // HU-4: ya existe una confirmación 'confirmada' — el camino correcto es editar, no
+        // reintentar un segundo POST (ese caso ya debería haberse evitado desde LoginPage,
+        // pero un cliente con dos pestañas abiertas puede llegar aquí igual).
+        if (error instanceof ApiError && error.status === 409) {
+          navigate("/editar", { replace: true });
+        }
       },
     });
   });

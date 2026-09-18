@@ -8,12 +8,24 @@ import {
 } from "@event-promotion/shared-types";
 import { ApiError } from "../../shared/api/client";
 import { useCrearInvitacion } from "../api/useCrearInvitacion";
+import { useListarInvitaciones } from "../api/useListarInvitaciones";
+import { useReenviarCodigo } from "../api/useReenviarCodigo";
+import { AdminNav } from "../components/AdminNav";
 import { useAdminSession } from "../context/AdminSessionContext";
+
+const ETIQUETA_ESTADO: Record<string, string> = {
+  confirmada: "Confirmada",
+  cancelada: "Cancelada",
+  sin_respuesta: "Sin respuesta",
+  rebotada: "Rebotada",
+};
 
 export function InvitacionesPage() {
   const navigate = useNavigate();
   const { session } = useAdminSession();
   const crearInvitacion = useCrearInvitacion();
+  const invitacionesQuery = useListarInvitaciones();
+  const reenviarCodigo = useReenviarCodigo();
 
   // Guarda de UX, no de seguridad — GET /admin/invitaciones no existe, así que no hay
   // ninguna llamada que dispare un 401 hasta el submit. El 401 real del POST sigue
@@ -49,6 +61,7 @@ export function InvitacionesPage() {
 
   return (
     <main>
+      <AdminNav />
       <h1>Invitar cliente</h1>
       <p>Sesión: {session.email}</p>
 
@@ -83,6 +96,42 @@ export function InvitacionesPage() {
           {crearInvitacion.isPending ? "Enviando…" : "Invitar"}
         </button>
       </form>
+
+      <h2>Invitaciones</h2>
+      {invitacionesQuery.isLoading ? <p>Cargando…</p> : null}
+      {invitacionesQuery.isError ? <p role="alert">No se pudo cargar el listado.</p> : null}
+      {invitacionesQuery.data ? (
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Acción (HU-11)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invitacionesQuery.data.map((invitacion) => (
+              <tr key={invitacion.idinvitacion}>
+                <td>{invitacion.email}</td>
+                <td>{invitacion.nombreCliente ?? "—"}</td>
+                <td>{ETIQUETA_ESTADO[invitacion.estado] ?? invitacion.estado}</td>
+                <td>
+                  <button
+                    type="button"
+                    disabled={reenviarCodigo.isPending}
+                    onClick={() => reenviarCodigo.mutate(invitacion.idinvitacion)}
+                  >
+                    Reenviar código
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+      {reenviarCodigo.isSuccess ? <p role="status">Código reenviado — el anterior ya no sirve para iniciar sesión.</p> : null}
+      {reenviarCodigo.isError ? <p role="alert">{reenviarCodigo.error.message}</p> : null}
     </main>
   );
 }

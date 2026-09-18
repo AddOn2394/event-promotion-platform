@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CrearInvitacionResponseSchema,
   type CrearInvitacionRequest,
@@ -7,6 +7,7 @@ import {
 import { apiFetch } from "../../shared/api/client";
 
 export function useCrearInvitacion() {
+  const queryClient = useQueryClient();
   return useMutation<CrearInvitacionResponse, Error, CrearInvitacionRequest>({
     mutationFn: async (body) => {
       const data = await apiFetch<unknown>("/admin/invitaciones", {
@@ -14,6 +15,9 @@ export function useCrearInvitacion() {
         body: JSON.stringify(body),
       });
       return CrearInvitacionResponseSchema.parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "invitaciones"] });
     },
   });
 }

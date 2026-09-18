@@ -15,3 +15,52 @@ export const SlotsResponseSchema = z.array(SlotSchema);
 
 export type Slot = z.infer<typeof SlotSchema>;
 export type SlotsResponse = z.infer<typeof SlotsResponseSchema>;
+
+// HU-10 (Gate 5, ADR-007/ADR-009): CRUD + soft-delete de slots. El admin panel expone
+// cupoMaximo y activo, que GET /slots (cliente) no expone.
+export const SlotAdminSchema = z.object({
+  id: UuidSchema,
+  fechaHoraInicio: DatetimeSchema,
+  fechaHoraFin: DatetimeSchema,
+  cupoMaximo: z.number().int().positive(),
+  cuposDisponibles: z.number().int().nonnegative(),
+  activo: z.boolean(),
+});
+
+export const SlotsAdminResponseSchema = z.array(SlotAdminSchema);
+
+function fechaFinDespuesDeInicio(data: { fechaHoraInicio: string; fechaHoraFin: string }): boolean {
+  return new Date(data.fechaHoraFin) > new Date(data.fechaHoraInicio);
+}
+
+export const CrearSlotRequestSchema = z
+  .object({
+    fechaHoraInicio: DatetimeSchema,
+    fechaHoraFin: DatetimeSchema,
+    cupoMaximo: z.number().int().positive(),
+  })
+  .refine(fechaFinDespuesDeInicio, {
+    message: "fechaHoraFin debe ser posterior a fechaHoraInicio",
+    path: ["fechaHoraFin"],
+  });
+
+// Reemplazo completo, mismo patrón que ActualizarCatalogoItemRequestSchema — `activo`
+// incluido para reactivar desde la misma pantalla. Reducir cupoMaximo por debajo de las
+// reservas actuales se valida en apps/api (ADR-009), no aquí: depende de cupos_disponibles
+// vigente en la DB, que este schema no conoce.
+export const ActualizarSlotRequestSchema = z
+  .object({
+    fechaHoraInicio: DatetimeSchema,
+    fechaHoraFin: DatetimeSchema,
+    cupoMaximo: z.number().int().positive(),
+    activo: z.boolean(),
+  })
+  .refine(fechaFinDespuesDeInicio, {
+    message: "fechaHoraFin debe ser posterior a fechaHoraInicio",
+    path: ["fechaHoraFin"],
+  });
+
+export type SlotAdmin = z.infer<typeof SlotAdminSchema>;
+export type SlotsAdminResponse = z.infer<typeof SlotsAdminResponseSchema>;
+export type CrearSlotRequest = z.infer<typeof CrearSlotRequestSchema>;
+export type ActualizarSlotRequest = z.infer<typeof ActualizarSlotRequestSchema>;

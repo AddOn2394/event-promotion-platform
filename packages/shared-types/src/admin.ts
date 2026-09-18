@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { DatetimeSchema, EmailSchema, UuidSchema } from "./primitives.js";
 
-// Contrato del admin panel — Gate 2 (ADR-011, ADR-013): login admin + crear invitación.
-// El resto del admin panel (catálogo, slots, export) es Gate 5.
+// Contrato del admin panel. Gate 2 (ADR-011, ADR-013): login admin + crear invitación.
+// Gate 5 (ADR-013, HU-8/HU-11): listar invitaciones, reenviar código, ver/exportar
+// confirmaciones.
 
 export const AdminLoginRequestSchema = z.object({
   email: EmailSchema,
@@ -29,3 +30,62 @@ export type AdminLoginRequest = z.infer<typeof AdminLoginRequestSchema>;
 export type AdminLoginResponse = z.infer<typeof AdminLoginResponseSchema>;
 export type CrearInvitacionRequest = z.infer<typeof CrearInvitacionRequestSchema>;
 export type CrearInvitacionResponse = z.infer<typeof CrearInvitacionResponseSchema>;
+
+// HU-8: los 4 estados nunca se agrupan entre sí (ADR-024) — "rebotada" es un rebote de la
+// notificación tipo=invitacion, distinto de "sin respuesta" (sin rebote, simplemente
+// usada_en IS NULL) y de "cancelada" (tuvo una confirmación previa).
+export const EstadoInvitacionAdminSchema = z.enum(["confirmada", "cancelada", "sin_respuesta", "rebotada"]);
+
+export const InvitacionAdminSchema = z.object({
+  idinvitacion: UuidSchema,
+  email: EmailSchema,
+  nombreCliente: z.string().nullable(),
+  creadaEn: DatetimeSchema,
+  estado: EstadoInvitacionAdminSchema,
+});
+
+export const ListarInvitacionesResponseSchema = z.array(InvitacionAdminSchema);
+
+export type EstadoInvitacionAdmin = z.infer<typeof EstadoInvitacionAdminSchema>;
+export type InvitacionAdmin = z.infer<typeof InvitacionAdminSchema>;
+export type ListarInvitacionesResponse = z.infer<typeof ListarInvitacionesResponseSchema>;
+
+// HU-11 (ADR-026): reenviar genera un código nuevo — la respuesta no incluye el código en
+// ningún formato, solo confirma que se generó y envió uno nuevo. Sin timestamp propio: no
+// existe una columna persistida que lo respalde (no un valor fabricado en memoria).
+export const ReenviarCodigoResponseSchema = z.object({
+  idinvitacion: UuidSchema,
+});
+export type ReenviarCodigoResponse = z.infer<typeof ReenviarCodigoResponseSchema>;
+
+// HU-8: ítem de la selección de una confirmación, para el listado admin y el CSV — viene
+// del snapshot (ADR-006), nunca de un join contra el catálogo vigente.
+export const ConfirmacionAdminItemSchema = z.object({
+  nombre: z.string(),
+  categoria: z.enum(["servicio", "producto"]),
+});
+
+export const ConfirmacionAdminSchema = z.object({
+  idinvitacion: UuidSchema,
+  email: EmailSchema,
+  nombreCliente: z.string().nullable(),
+  estado: EstadoInvitacionAdminSchema,
+  slot: z.object({ fechaHoraInicio: DatetimeSchema, fechaHoraFin: DatetimeSchema }).nullable(),
+  items: z.array(ConfirmacionAdminItemSchema),
+  subtotalServiciosCents: z.number().int().nullable(),
+  descuentoServiciosPct: z.number().int().nullable(),
+  subtotalProductosCents: z.number().int().nullable(),
+  descuentoProductosPct: z.number().int().nullable(),
+  totalCents: z.number().int().nullable(),
+});
+
+export const ListarConfirmacionesAdminResponseSchema = z.array(ConfirmacionAdminSchema);
+
+export const ListarConfirmacionesAdminQuerySchema = z.object({
+  estado: EstadoInvitacionAdminSchema.optional(),
+});
+
+export type ConfirmacionAdminItem = z.infer<typeof ConfirmacionAdminItemSchema>;
+export type ConfirmacionAdmin = z.infer<typeof ConfirmacionAdminSchema>;
+export type ListarConfirmacionesAdminResponse = z.infer<typeof ListarConfirmacionesAdminResponseSchema>;
+export type ListarConfirmacionesAdminQuery = z.infer<typeof ListarConfirmacionesAdminQuerySchema>;

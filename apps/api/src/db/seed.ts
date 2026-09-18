@@ -82,6 +82,22 @@ async function seedConfiguracionDescuento(pool: Pool): Promise<void> {
   console.log("configuracion_descuento: fila insertada (valores del PDF, ADR-023).");
 }
 
+// N días de deadline (ADR-010) — decisión de infraestructura documentada en
+// spec/todo.md (Gate 4), no viene del PDF, igual que el TTL del JWT.
+const DIAS_DEADLINE_EDICION = 3;
+
+async function seedConfiguracionEvento(pool: Pool): Promise<void> {
+  const { rows } = await pool.query<{ count: string }>("SELECT COUNT(*) FROM configuracion_evento");
+  if (Number(rows[0]?.count) > 0) {
+    console.log("configuracion_evento ya tiene datos — se omite el seed.");
+    return;
+  }
+  await pool.query("INSERT INTO configuracion_evento (dias_deadline_edicion) VALUES ($1)", [
+    DIAS_DEADLINE_EDICION,
+  ]);
+  console.log(`configuracion_evento: fila insertada (dias_deadline_edicion=${DIAS_DEADLINE_EDICION}).`);
+}
+
 async function seedAdminUser(pool: Pool): Promise<void> {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
@@ -107,6 +123,7 @@ async function main(): Promise<void> {
       seedCatalogo(pool),
       seedSlots(pool),
       seedConfiguracionDescuento(pool),
+      seedConfiguracionEvento(pool),
       seedAdminUser(pool),
     ]);
   } finally {

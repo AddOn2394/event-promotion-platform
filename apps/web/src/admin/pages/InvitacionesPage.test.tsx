@@ -11,8 +11,12 @@ describe("InvitacionesPage — nombreCliente vacío no debe romper el submit (bu
     // real (AdminLoginPage ya seteó la sesión antes de navegar a /admin/invitaciones).
     sessionStorage.setItem("admin-session-email", "admin@example.com");
 
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = typeof input === "string" ? input : (input as Request).url;
+      if (url.includes("/admin/invitaciones") && (init?.method ?? "GET") === "GET") {
+        return new Response(JSON.stringify([]), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      return new Response(
         JSON.stringify({
           idinvitacion: "33333333-3333-3333-3333-333333333333",
           email: "cliente@example.com",
@@ -20,8 +24,8 @@ describe("InvitacionesPage — nombreCliente vacío no debe romper el submit (bu
           creadaEn: new Date().toISOString(),
         }),
         { status: 201, headers: { "content-type": "application/json" } },
-      ),
-    );
+      );
+    });
 
     renderWithProviders(<InvitacionesPage />, { initialEntries: ["/admin/invitaciones"] });
 
@@ -31,7 +35,8 @@ describe("InvitacionesPage — nombreCliente vacío no debe romper el submit (bu
     await screen.findByText(/invitación creada/i);
     expect(screen.queryByText(/al menos 1 carácter|string must contain/i)).toBeNull();
 
-    const body = JSON.parse((fetchSpy.mock.calls[0]?.[1] as RequestInit).body as string);
+    const postCall = fetchSpy.mock.calls.find((call) => (call[1]?.method ?? "GET") === "POST");
+    const body = JSON.parse((postCall?.[1] as RequestInit).body as string);
     expect(body.nombreCliente).toBeUndefined();
 
     fetchSpy.mockRestore();

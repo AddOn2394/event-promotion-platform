@@ -1,9 +1,28 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { LoginClienteRequestSchema, type LoginClienteRequest } from "@event-promotion/shared-types";
+import {
+  ConfirmacionPropiaResponseSchema,
+  LoginClienteRequestSchema,
+  type LoginClienteRequest,
+} from "@event-promotion/shared-types";
+import { apiFetch } from "../../shared/api/client";
 import { useLoginCliente } from "../api/useLoginCliente";
 import { useClienteSession } from "../context/ClienteSessionContext";
+
+// HU-4/HU-7: si la invitación ya tiene una confirmación 'confirmada' vigente, entra a
+// editar (HU-4/HU-5) en vez de al formulario de primera vez — evita un 409 inmediato al
+// intentar un segundo POST /confirmaciones. Sin confirmación o 'cancelada' (reconfirmar,
+// HU-7) sigue siendo el mismo formulario de siempre.
+async function decidirDestinoTrasLogin(): Promise<"/confirmar" | "/editar"> {
+  try {
+    const data = await apiFetch<unknown>("/confirmaciones/mia");
+    const confirmacion = ConfirmacionPropiaResponseSchema.parse(data);
+    return confirmacion.estado === "confirmada" ? "/editar" : "/confirmar";
+  } catch {
+    return "/confirmar";
+  }
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -26,9 +45,9 @@ export function LoginPage() {
 
   const onSubmit = handleSubmit((values) => {
     login.mutate(values, {
-      onSuccess: (data) => {
+      onSuccess: async (data) => {
         setSession({ email: data.email, nombreCliente: data.nombreCliente });
-        navigate("/confirmar");
+        navigate(await decidirDestinoTrasLogin());
       },
     });
   });

@@ -1,7 +1,7 @@
 // Cliente fetch compartido — credentials: "include" siempre (ADR-011/013, CLAUDE.md
 // Node/Express): la cookie httpOnly de sesión solo viaja si cada fetch la pide explícitamente.
 
-const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = import.meta.env.VITE_API_URL;
 
 export class ApiError extends Error {
   readonly status: number;

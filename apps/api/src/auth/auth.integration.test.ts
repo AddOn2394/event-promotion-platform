@@ -72,4 +72,101 @@ describe("auth — login de cliente por código (HU-2), integración contra Post
     );
     expect(despues[0]?.usada_en).not.toBeNull();
   });
+
+  it("bloquea con 429 tras 5 intentos fallidos en 15 minutos, por email sin importar el código probado (ADR-022)", async () => {
+    await crearInvitacionDePrueba();
+
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: "000000" });
+      expect(res.status).toBe(401);
+    }
+
+    const bloqueado = await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: CODIGO });
+    expect(bloqueado.status).toBe(429);
+
+    const { rows } = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) FROM intentos_fallidos_login WHERE email = $1",
+      [EMAIL_CLIENTE],
+    );
+    expect(Number(rows[0]?.count)).toBe(5);
+  });
+
+  it("un login exitoso limpia los intentos fallidos previos de ese email", async () => {
+    await crearInvitacionDePrueba();
+
+    await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: "000000" });
+    await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: "000000" });
+
+    const exitoso = await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: CODIGO });
+    expect(exitoso.status).toBe(200);
+
+    const { rows } = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) FROM intentos_fallidos_login WHERE email = $1",
+      [EMAIL_CLIENTE],
+    );
+    expect(Number(rows[0]?.count)).toBe(0);
+  });
+
+  it("permite el login aunque el slot de la confirmación de esa invitación ya haya pasado, mientras el evento siga vigente (ADR-011, párrafo 'Vigencia del código': el slot individual nunca gobierna la sesión)", async () => {
+    await crearInvitacionDePrueba();
+    const { rows: invitacionRows } = await pool.query<{ idinvitacion: string }>(
+      "SELECT idinvitacion FROM invitaciones WHERE email = $1",
+      [EMAIL_CLIENTE],
+    );
+    const idinvitacion = invitacionRows[0]?.idinvitacion;
+    if (!idinvitacion) throw new Error("Fixture de invitación no encontrada.");
+
+    // El slot de la propia confirmación ya pasó (ej. cliente asistió el día 1 de un evento
+    // de 3 días), pero el fixture del evento (fixtures.slotId, sembrado por seedFixtures en
+    // otros archivos — aquí no hay fixture de catálogo, así que se crea uno explícito en el
+    // futuro) sigue activo, así que el login debe seguir funcionando.
+    const { rows: slotPasadoRows } = await pool.query<{ idslot: string }>(
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES (now() - interval '5 days', now() - interval '5 days' + interval '2 hours', 10, 10) RETURNING idslot",
+    );
+    const idslotPasado = slotPasadoRows[0]?.idslot;
+    if (!idslotPasado) throw new Error("No se pudo crear el slot de prueba en el pasado.");
+    const { rows: slotFuturoRows } = await pool.query<{ idslot: string }>(
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES (now() + interval '5 days', now() + interval '5 days' + interval '2 hours', 10, 10) RETURNING idslot",
+    );
+    if (!slotFuturoRows[0]) throw new Error("No se pudo crear el slot de prueba futuro.");
+
+    await pool.query(
+      `INSERT INTO confirmaciones (
+         idinvitacion, idslot, estado,
+         subtotal_servicios_cents, descuento_servicios_pct,
+         subtotal_productos_cents, descuento_productos_pct, total_cents,
+         min_servicios_3pct_snapshot, min_servicios_5pct_snapshot,
+         monto_minimo_5pct_servicios_cents_snapshot,
+         min_productos_3pct_snapshot, min_productos_5pct_snapshot
+       ) VALUES ($1, $2, 'confirmada', 0, 0, 0, 0, 0, 2, 2, 150000, 3, 5)`,
+      [idinvitacion, idslotPasado],
+    );
+
+    const res = await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: CODIGO });
+    expect(res.status).toBe(200);
+    // Los slots creados aquí no se borran (la confirmación tiene FK hacia idslotPasado) —
+    // limpiarTablasTransaccionales (afterEach) libera la confirmación vía TRUNCATE CASCADE;
+    // los slots sobrantes no afectan a los demás tests de este archivo.
+  });
+
+  it("rechaza el login de una invitación sin confirmación cuando ya pasó el evento completo (ADR-011, MAX de slots activos)", async () => {
+    await crearInvitacionDePrueba();
+
+    // Fin de evento derivado de MAX(fecha_hora_fin) de slots activos (decidido en Gate 4) —
+    // se desactiva el slot fixture (futuro) y se deja solo un slot activo ya pasado, para
+    // que el evento completo quede en el pasado. Se restaura al terminar para no afectar
+    // otros tests del mismo archivo.
+    await pool.query("UPDATE slots SET activo = false");
+    const { rows: slotPasadoRows } = await pool.query<{ idslot: string }>(
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES (now() - interval '5 days', now() - interval '5 days' + interval '2 hours', 10, 10) RETURNING idslot",
+    );
+
+    try {
+      const res = await request(app).post("/auth/login").send({ email: EMAIL_CLIENTE, codigo: CODIGO });
+      expect(res.status).toBe(401);
+    } finally {
+      await pool.query("DELETE FROM slots WHERE idslot = $1", [slotPasadoRows[0]?.idslot]);
+      await pool.query("UPDATE slots SET activo = true");
+    }
+  });
 });
