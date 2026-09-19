@@ -76,10 +76,17 @@ export async function leerDiasDeadlineEdicion(db: Queryable = pool): Promise<num
 
 // ADR-011: sin una entidad "evento" propia, el fin del evento completo se deriva del
 // último slot activo — decisión tomada explícitamente con el usuario en Gate 4 (no hay
-// fecha de fin independiente que mantener ni migrar).
+// fecha de fin independiente que mantener ni migrar). Caso borde encontrado en el
+// code-review de Gate 6, ratificado con el usuario: un slot desactivado por el admin
+// después de que un cliente ya confirmó ahí no debe "adelantar" el fin del evento para esa
+// invitación — el admin puede desactivar un slot con reservas activas (desactivarSlot no lo
+// bloquea) y ese cliente no debe quedar con el código expirado por una limpieza
+// administrativa. Un slot inactivo sin ninguna confirmación vigente sí queda excluido.
 export async function obtenerFinDelEvento(): Promise<Date | null> {
   const { rows } = await pool.query<{ fin: Date | null }>(
-    "SELECT MAX(fecha_hora_fin) AS fin FROM slots WHERE activo = true",
+    `SELECT MAX(fecha_hora_fin) AS fin FROM slots
+     WHERE activo = true
+        OR idslot IN (SELECT idslot FROM confirmaciones WHERE estado = 'confirmada')`,
   );
   return rows[0]?.fin ?? null;
 }

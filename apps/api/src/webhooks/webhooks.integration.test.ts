@@ -151,4 +151,19 @@ describe("webhooks — POST /webhooks/resend (ADR-024), integración contra Post
     expect(res.status).toBe(200);
     expect(await leerEstado(idnotificacion)).toBe("enviado");
   });
+
+  // code-review Gate 6: un evento con firma válida pero forma inesperada (data sin
+  // email_id, o sin data del todo) no debe romper con un 500 — se trata igual que un tipo
+  // de evento sin mapeo, 200 OK sin tocar nada, en vez de un TypeError no controlado.
+  it("un evento con tipo mapeado pero sin data.email_id devuelve 200 sin romper (firma válida, forma inesperada)", async () => {
+    const { body, headers } = firmar({ type: "email.bounced", data: {} });
+    const res = await request(app).post("/webhooks/resend").set("Content-Type", "application/json").set(headers).send(body);
+    expect(res.status).toBe(200);
+  });
+
+  it("un evento con firma válida pero sin campo type devuelve 200 sin romper", async () => {
+    const { body, headers } = firmar({ data: { email_id: "no-importa" } });
+    const res = await request(app).post("/webhooks/resend").set("Content-Type", "application/json").set(headers).send(body);
+    expect(res.status).toBe(200);
+  });
 });

@@ -1,6 +1,6 @@
 # Estado del Plan — Event Promotion Platform
 
-> Última actualización: 2026-09-17 — **Gate 5 (Admin panel completo) cerrado**. Ver `spec/todo.md`.
+> Última actualización: 2026-09-19 — **Gate 6 (Endurecimiento final) cerrado.** Se agregó **Gate 7 (Estilos visuales, Tailwind minimalista)** al plan a pedido del líder del proyecto — Gate 6 deja de ser el último gate. Ver `spec/todo.md` y `spec/PLAN_DESARROLLO.md` v1.4.
 
 ---
 
@@ -24,6 +24,10 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 **Gate 5 (Admin panel completo) cerrado.** HU-8 (`GET /admin/confirmaciones` + `/export.csv`, invitación-céntrico, 4 estados nunca agrupados, snapshot congelado — nunca recálculo), HU-9/HU-10 (CRUD + soft-delete de catálogo y slots, `cupoMaximo` movido por delta con el mismo principio anti-read-then-write de ADR-009), HU-11 (`POST /admin/invitaciones/:id/reenviar`, ADR-026 ya ratificado, ahora también limpia el rate limit del cliente), HU-12 (umbrales de descuento con la coherencia 5%≥3% validada en el schema Zod compartido, ADR-003/ADR-016), y `POST /webhooks/resend` (ADR-024, verificado por firma Svix, nombres de evento confirmados contra la documentación real de Resend: `email.delivered`/`bounced`/`failed`). Dos decisiones nuevas ratificadas con el usuario: **ADR-027** (el CSV de HU-8 emite una sola columna `nombre`, sin `apellidos` — el modelo de datos nunca tuvo ese campo separado) y `scope` agregado a `intentos_fallidos_login` (migración 0011) para que el login admin y el de cliente no compartan contador de rate limiting (riesgo de lockout cruzado de rol detectado antes de decidir en silencio). `/code-review` encontró y corrigió 5 hallazgos (un formulario de slots que nunca podía enviarse por un formato de fecha incompatible con el schema; reenviar código sin limpiar el rate limit del cliente; el webhook dejando que `fallido`/`rebotado` se pisaran entre sí; un tipo de respuesta duplicado a mano en vez de importar el schema; falta de invalidación de cache tras crear una invitación). `advisor` encontró y corrigió 4 más (un test que no probaba lo que afirmaba, un campo de respuesta fabricado sin respaldo en DB, un `ScheduleWakeup` armado por error a mitad de sesión, y la documentación/cierre de issues pendientes de este mismo cierre). Detalle completo en `spec/todo.md`, entrada "2026-09-17 (Gate 5 — Admin panel completo: CERRADO)". **Pendiente explícito**: sigue sin desplegar en Render (arrastrado desde Gate 2/3/4); `RESEND_WEBHOOK_SECRET` agregado a `render.yaml` pero no seteado todavía en el dashboard de Render ni registrado en el dashboard de Resend; dos hallazgos de código de Gate 4 (no de este diff) dejados sin corregir a propósito por ser un juicio de negocio (ver `spec/todo.md`); pantallas de Gate 5 no verificadas visualmente en navegador por este agente.
 
+**Gate 6 (Endurecimiento final) cerrado.** `/code-review` end-to-end sobre `apps/api/src`, `apps/web/src`, `packages/shared-types/src` completos (Gate 0-5, no un diff) encontró 10 hallazgos: 5 corregidos (read-then-write en `confirmarAsistencia`/`editarConfirmacion` para slot/catálogo — el slot cerrado del todo doblando `activo = true` en el UPDATE atómico de cupo, ítems de catálogo con una ventana residual documentada y aceptada; `obtenerFinDelEvento` ahora cuenta un slot inactivo con confirmación vigente, **ADR-029** nueva, ratificada con el usuario; `csvEscapar` cubre tab/CR además de `=+-@`; el webhook de Resend valida forma con Zod tras la firma en vez de castear sin validar; el formulario de deadline de `SlotsAdminPage` pasó a react-hook-form+Zod), 4 diferidos con razón documentada (orden de escritura notificación/webhook, check-then-act del rate limiting, `ROLLBACK` que puede enmascarar un error, snapshot de confirmación escrito 3 veces a mano), y 1 verificado sin drift (OpenAPI, con 3 fixes de higiene aplicados igual). Accesibilidad básica de las 3 pantallas públicas del cliente (labels/foco/contraste ya estaban bien; se corrigieron 3 gaps reales de asociación de errores y regiones vivas) — no verificada visualmente en navegador esta sesión. Limpieza de `PLACEHOLDER` en el seed (solo la etiqueta, el usuario confirmó que los datos siguen siendo de ejemplo). README con setup local real, verificado de punta a punta desde cero en esta máquina. Suite final: 88/88 (api, +7 tests nuevos) + 12/12 (web) + 20/20 (shared-types). Detalle completo en `spec/todo.md`, entrada "2026-09-19 (Gate 6 — Endurecimiento final: CERRADO...)". **Pendiente explícito, arrastrado**: sigue sin desplegar en Render (nada de Gate 2-6 verificado en producción); los dos juicios de negocio de Gate 5 siguen sin resolver (el code-review no los volvió a encontrar).
+
+**Gate 7 (Estilos visuales, Tailwind minimalista) agregado al plan, no iniciado.** Pedido explícito del líder del proyecto al cierre de la sesión de Gate 6 — ver `spec/PLAN_DESARROLLO.md` Gate 7 para el exit criterio completo. No es una corrección de Gate 6 ni algo que el spec original pidiera — es alcance nuevo, añadido conscientemente después de cerrar el último gate original. Sin milestone/issues de GitHub creados todavía para este gate.
+
 ---
 
 ## 2. Gates — estado
@@ -36,7 +40,8 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 | G3 — Cupo atómico por slot | **Cerrado** | milestone "G3 - Cupo atomico por slot" |
 | G4 — Edición/deadline/cancelación | **Cerrado** | milestone "G4 - Edicion, deadline, cambio de slot y cancelacion" |
 | G5 — Admin panel completo | **Cerrado** | milestone "G5 - Admin panel completo" |
-| G6 — Endurecimiento final | No iniciado | milestone "G6 - Endurecimiento final" |
+| G6 — Endurecimiento final | **Cerrado** | milestone "G6 - Endurecimiento final" |
+| G7 — Estilos visuales (Tailwind minimalista) | No iniciado | sin milestone todavía — agregado 2026-09-19, después del reparto original de issues |
 
 ---
 
@@ -56,6 +61,8 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 - HU-11 (reenviar código) corregida: genera código nuevo, no recupera el original (ADR-026) — incompatible con nunca guardar el código en texto plano.
 - HU-8 export CSV: una sola columna `nombre`, sin `apellidos` (ADR-027) — el modelo de datos nunca tuvo un campo de apellidos separado.
 - Rate limiting de login admin y de cliente usan la misma tabla (`intentos_fallidos_login`) pero contadores aislados por `scope` (migración 0011) — nunca comparten lockout entre roles.
+- Login con código correcto pero evento terminado no cuenta como intento fallido hacia el rate limiting (ADR-028).
+- Fin del evento (ADR-011): además de slots activos, un slot inactivo con una confirmación `confirmada` vigente también cuenta — desactivar un slot con reservas no debe adelantar el fin del evento para ese cliente (ADR-029).
 
 ---
 
@@ -67,4 +74,6 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
-**Gate 5 cerrado.** Próximo: **Gate 6 — endurecimiento final** (ver `spec/PLAN_DESARROLLO.md`): `/code-review` end-to-end sobre el branch completo (no solo el último diff), accesibilidad básica del formulario público, walkthrough consolidado de todas las fases, limpieza de código muerto/TODOs, `README.md` con instrucciones de setup y link de demo pública. Antes de tocar código de Gate 6, para cualquier verificación en producción: confirmar en el dashboard de Render que las variables de Gate 2-5 (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`, `RESEND_WEBHOOK_SECRET`) están seteadas, registrar el webhook en el dashboard de Resend, y desplegar la rama actual (Gate 2-5 completos, nada de esto está en Render todavía).
+**Gate 6 cerrado. Próximo: Gate 7 — Estilos visuales (Tailwind minimalista)** (ver `spec/PLAN_DESARROLLO.md`): pasada de diseño sobre `apps/web` completo (cliente y admin) hacia una estética minimalista, fluyendo desde `shared/ui`/`index.css`, sin cambiar comportamiento ni contrato. Verificación visual real en navegador es obligatoria para cerrar este gate — a diferencia de Gate 6, que lo dejó pendiente dos veces por no tener Chrome conectado. Ver `spec/next-session-prompt.md` para el prompt listo de esta sesión.
+
+Aparte, sigue abierto (operativo, no de código): ninguna rama posterior a Gate 1 está desplegada en Render. Si el usuario quiere desplegar en algún momento: confirmar en el dashboard de Render que las variables de Gate 2-6 (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`, `RESEND_WEBHOOK_SECRET`) están seteadas, registrar el webhook en el dashboard de Resend, y desplegar la rama actual.

@@ -109,7 +109,7 @@ export function ConfirmarPage() {
   if (catalogoQuery.isPending || slotsQuery.isPending || configQuery.isPending) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-papel">
-        <p className="text-apagado">Cargando…</p>
+        <p role="status" className="text-apagado">Cargando…</p>
       </main>
     );
   }
@@ -162,9 +162,14 @@ export function ConfirmarPage() {
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
           <div className="flex flex-col gap-6">
-            <CatalogoBuscador catalogo={catalogo} seleccionadosIds={seleccionadosIds} onAgregar={agregarItem} />
+            <CatalogoBuscador
+              catalogo={catalogo}
+              seleccionadosIds={seleccionadosIds}
+              onAgregar={agregarItem}
+              describedBy={errors.items ? "items-error" : undefined}
+            />
             {errors.items ? (
-              <p role="alert" className="text-sm text-alerta">
+              <p id="items-error" role="alert" className="text-sm text-alerta">
                 {errors.items.message}
               </p>
             ) : null}
@@ -180,14 +185,19 @@ export function ConfirmarPage() {
               </Field>
 
               {confirmar.isError ? (
-                <p role="alert" className="text-sm text-alerta">
+                <p id="confirmar-error" role="alert" className="text-sm text-alerta">
                   {confirmar.error instanceof ApiError && confirmar.error.status === 409
                     ? "Ya existe una confirmación para esta invitación."
                     : confirmar.error.message}
                 </p>
               ) : null}
 
-              <Button type="submit" disabled={confirmar.isPending} className="self-start">
+              <Button
+                type="submit"
+                disabled={confirmar.isPending}
+                aria-describedby={confirmar.isError ? "confirmar-error" : undefined}
+                className="self-start"
+              >
                 {confirmar.isPending ? "Confirmando…" : "Confirmar asistencia"}
               </Button>
             </form>

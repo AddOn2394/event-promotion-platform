@@ -349,6 +349,29 @@ describe("admin — listar y exportar confirmaciones (HU-8), integración contra
     expect(res.text).toContain("TEST FIXTURE servicio barato");
   });
 
+  // code-review Gate 6: csvEscapar solo neutralizaba =/+/-/@ al inicio del valor, pero un
+  // tab o un retorno de carro también dispara una fórmula en algunos importadores de hoja
+  // de cálculo (lo strippean antes de parsear la celda, dejando expuesto el caracter que
+  // sigue). nombreCliente es el único campo de texto libre del cliente que termina en el CSV.
+  it("escapa un nombreCliente con tab+fórmula al exportar el CSV (mitigación de CSV injection, OWASP)", async () => {
+    const cookie = await loginClienteDePrueba("csv-injection@example.com", "777777");
+    await request(app)
+      .post("/confirmaciones")
+      .set("Cookie", cookie)
+      .send({
+        items: [{ catalogoItemId: fixtures.servicioBaratoId, categoria: "servicio" }],
+        slotId: fixtures.slotId,
+        nombreCliente: "\t=1+1",
+      });
+
+    const agent = await loginAdminAgent();
+    const res = await agent.get("/admin/confirmaciones/export.csv");
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("'\t=1+1,csv-injection@example.com");
+    expect(res.text).not.toContain("\n\t=1+1,csv-injection@example.com");
+  });
+
   it("cambiar configuracion_descuento no recalcula confirmaciones ya hechas — el snapshot no cambia", async () => {
     const cookie = await loginClienteDePrueba("snapshot@example.com", "999999");
     await request(app)

@@ -304,8 +304,11 @@ function centsAQuetzales(cents: number | null): string {
 // empieza con =/+/-/@ se interpreta como fórmula al abrir el CSV en Excel/Sheets (CSV
 // injection). Se neutraliza con un apóstrofe inicial, el mitigante estándar, antes del
 // escapado de comillas/comas que ya existía.
+// OWASP CSV injection: además de =/+/-/@, un tab o un retorno de carro al inicio también
+// dispara una fórmula en algunos importadores de hoja de cálculo (los strippean antes de
+// parsear la celda, dejando expuesto el caracter que sigue).
 function csvEscapar(valorOriginal: string): string {
-  const valor = /^[=+\-@]/.test(valorOriginal) ? `'${valorOriginal}` : valorOriginal;
+  const valor = /^[=+\-@\t\r]/.test(valorOriginal) ? `'${valorOriginal}` : valorOriginal;
   return /[",\n\r]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor;
 }
 

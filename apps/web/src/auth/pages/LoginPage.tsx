@@ -84,12 +84,17 @@ export function LoginPage() {
           </Field>
 
           {login.isError ? (
-            <p role="alert" className="text-sm text-alerta">
+            <p id="login-error" role="alert" className="text-sm text-alerta">
               {login.error.message}
             </p>
           ) : null}
 
-          <Button type="submit" disabled={login.isPending || redirigiendo} className="mt-2">
+          <Button
+            type="submit"
+            disabled={login.isPending || redirigiendo}
+            aria-describedby={login.isError ? "login-error" : undefined}
+            className="mt-2"
+          >
             {login.isPending || redirigiendo ? "Ingresando…" : "Ingresar"}
           </Button>
         </form>

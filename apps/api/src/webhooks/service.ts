@@ -1,3 +1,4 @@
+import { ResendWebhookEventSchema, type ResendWebhookEvent } from "@event-promotion/shared-types";
 import { Webhook } from "svix";
 import { pool } from "../db/pool.js";
 import { HttpError } from "../shared/http-error.js";
@@ -14,24 +15,21 @@ function getWebhookSecret(): string {
   return secret;
 }
 
-export type ResendWebhookPayload = {
-  type: string;
-  data: { email_id: string };
-};
-
 // `payload` debe ser el body crudo (string/Buffer), nunca JSON ya parseado — la firma es
-// sensible a cualquier cambio, incluyendo el que introduciría re-serializar el objeto.
+// sensible a cualquier cambio, incluyendo el que introduciría re-serializar el objeto. La
+// firma prueba que el payload vino de Resend, no que tenga la forma esperada (ver
+// ResendWebhookEventSchema) — eso se valida aparte, después de verificar.
 export function verificarFirmaWebhook(
   payload: string | Buffer,
   headers: { "svix-id"?: string; "svix-timestamp"?: string; "svix-signature"?: string },
-): ResendWebhookPayload {
+): unknown {
   const webhook = new Webhook(getWebhookSecret());
   try {
     return webhook.verify(payload, {
       "svix-id": headers["svix-id"] ?? "",
       "svix-timestamp": headers["svix-timestamp"] ?? "",
       "svix-signature": headers["svix-signature"] ?? "",
-    }) as ResendWebhookPayload;
+    });
   } catch {
     throw new HttpError(400, "Firma de webhook inválida.");
   }
@@ -71,8 +69,16 @@ async function actualizarEstadoSiNoEsRetroceso(idMensajeResend: string, estado: 
   );
 }
 
-export async function procesarEventoResend(evento: ResendWebhookPayload): Promise<void> {
+// `crudo` es el resultado ya verificado por firma de verificarFirmaWebhook, todavía sin
+// validar su forma — un evento correctamente firmado pero con un `data` inesperado (cambio
+// futuro del payload de Resend) se trata igual que un tipo de evento sin mapeo: 200 OK sin
+// tocar nada, nunca un TypeError no controlado.
+export async function procesarEventoResend(crudo: unknown): Promise<void> {
+  const resultado = ResendWebhookEventSchema.safeParse(crudo);
+  if (!resultado.success) return;
+  const evento: ResendWebhookEvent = resultado.data;
+
   const estado = estadoDesdeEvento(evento.type);
-  if (!estado) return;
+  if (!estado || !evento.data?.email_id) return;
   await actualizarEstadoSiNoEsRetroceso(evento.data.email_id, estado);
 }

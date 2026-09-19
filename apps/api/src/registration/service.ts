@@ -41,10 +41,12 @@ function resultadoDesdeDescuento(descuento: ReturnType<typeof calcularDescuento>
 
 // Se resuelve sobre ids únicos, no sobre los items de entrada — un catalogoItemId repetido
 // en el request nunca debe cobrarse ni insertarse dos veces, y categoría/precio siempre
-// salen de la DB, nunca de lo que envía el cliente (HU-3).
-async function resolverSeleccion(items: { catalogoItemId: string }[]): Promise<ItemResuelto[]> {
+// salen de la DB, nunca de lo que envía el cliente (HU-3). Siempre se llama con el client de
+// la transacción vigente — un ítem desactivado a mitad de sesión del cliente no debe poder
+// confirmarse/editarse, y eso solo es autoritativo leído bajo el mismo lock que la escritura.
+async function resolverSeleccion(items: { catalogoItemId: string }[], client: PoolClient): Promise<ItemResuelto[]> {
   const idsUnicos = [...new Set(items.map((item) => item.catalogoItemId))];
-  const itemsCatalogo = await buscarCatalogoActivoPorIds(idsUnicos);
+  const itemsCatalogo = await buscarCatalogoActivoPorIds(idsUnicos, client);
   const itemsPorId = new Map(itemsCatalogo.map((item) => [item.id, item]));
 
   return idsUnicos.map((id) => {
@@ -136,27 +138,11 @@ export async function confirmarAsistencia(
     throw new HttpError(409, "Ya existe una confirmación para esta invitación.");
   }
 
-  // Slot e ítems se consultan en paralelo, pero el slot se resuelve primero de forma
-  // determinista — si ambos son inválidos, el cliente siempre ve el mismo mensaje sin
-  // importar qué query de Postgres responda primero (antes con Promise.all corría el
-  // riesgo de reportar uno u otro según el orden de resolución interno).
-  const slotPromise = buscarSlotActivoPorId(input.slotId);
-  const itemsPromise = resolverSeleccion(input.items);
-  const slot = await slotPromise;
-  if (!slot) {
-    itemsPromise.catch(() => {});
-    throw new HttpError(400, "El horario seleccionado no está disponible.");
-  }
-  const itemsResueltos = await itemsPromise;
-
-  const config = await leerConfiguracionDescuentoVigente();
-  const descuento = calcularDescuento(itemsResueltos, config);
-  const resultado = resultadoDesdeDescuento(descuento);
-
   let idnotificacion: string;
   let esReconfirmacion = false;
+  let resultado: ConfirmarAsistenciaResponse;
   try {
-    ({ idnotificacion, esReconfirmacion } = await withTransaction(pool, async (client) => {
+    ({ idnotificacion, esReconfirmacion, resultado } = await withTransaction(pool, async (client) => {
       if (input.nombreCliente) {
         await client.query("UPDATE invitaciones SET nombre_cliente = $1 WHERE idinvitacion = $2", [
           input.nombreCliente,
@@ -177,12 +163,32 @@ export async function confirmarAsistencia(
       }
       const reconfirmando = actual?.estado === "cancelada";
 
+      // Slot e ítems se resuelven acá, bajo el client de la transacción — nunca antes de
+      // abrirla (código-review Gate 6: antes se leían con el pool, con toda la fase previa
+      // a la transacción como ventana para un soft-delete concurrente). El slot queda
+      // completamente cerrado: `activo = true` va en el mismo UPDATE atómico que toma el
+      // cupo, abajo, nunca en un SELECT separado. Los ítems de catálogo son una lectura
+      // plana (buscarCatalogoActivoPorIds no hace SELECT ... FOR SHARE) — queda una ventana
+      // residual del tamaño de esta misma transacción hasta reemplazarItemsConfirmacion, no
+      // cerrada del todo: no son un recurso contado como el cupo y ADR-009 no los cubre, así
+      // que no se agregó un lock explícito para esta sesión.
+      const slot = await buscarSlotActivoPorId(input.slotId, client);
+      if (!slot) {
+        throw new HttpError(400, "El horario seleccionado no está disponible.");
+      }
+      const itemsResueltos = await resolverSeleccion(input.items, client);
+      const config = await leerConfiguracionDescuentoVigente();
+      const descuento = calcularDescuento(itemsResueltos, config);
+      const resultadoActual = resultadoDesdeDescuento(descuento);
+
       // ADR-009 punto 2: UPDATE condicional dentro de la misma transacción que la
       // confirmación — única forma de tomar cupo, nunca un read-then-write con gap. En
       // reconfirmación el slot viejo ya se liberó al cancelar (HU-6), así que esto es un
-      // -1 fresco, sin liberar nada más.
+      // -1 fresco, sin liberar nada más. `activo = true` va en la misma condición (no en un
+      // SELECT previo) para que un soft-delete concurrente entre la lectura de arriba y este
+      // UPDATE no pueda colarse — Postgres serializa ambos UPDATE sobre la misma fila.
       const cupoTomado = await client.query(
-        "UPDATE slots SET cupos_disponibles = cupos_disponibles - 1 WHERE idslot = $1 AND cupos_disponibles > 0",
+        "UPDATE slots SET cupos_disponibles = cupos_disponibles - 1 WHERE idslot = $1 AND cupos_disponibles > 0 AND activo = true",
         [input.slotId],
       );
       if (cupoTomado.rowCount === 0) {
@@ -204,11 +210,11 @@ export async function confirmarAsistencia(
            WHERE idconfirmacion = $12`,
           [
             input.slotId,
-            resultado.subtotalServiciosCents,
-            resultado.descuentoServiciosPct,
-            resultado.subtotalProductosCents,
-            resultado.descuentoProductosPct,
-            resultado.totalCents,
+            resultadoActual.subtotalServiciosCents,
+            resultadoActual.descuentoServiciosPct,
+            resultadoActual.subtotalProductosCents,
+            resultadoActual.descuentoProductosPct,
+            resultadoActual.totalCents,
             config.minServicios3pct,
             config.minServicios5pct,
             config.montoMinimo5pctServiciosCents,
@@ -231,11 +237,11 @@ export async function confirmarAsistencia(
           [
             idinvitacion,
             input.slotId,
-            resultado.subtotalServiciosCents,
-            resultado.descuentoServiciosPct,
-            resultado.subtotalProductosCents,
-            resultado.descuentoProductosPct,
-            resultado.totalCents,
+            resultadoActual.subtotalServiciosCents,
+            resultadoActual.descuentoServiciosPct,
+            resultadoActual.subtotalProductosCents,
+            resultadoActual.descuentoProductosPct,
+            resultadoActual.totalCents,
             config.minServicios3pct,
             config.minServicios5pct,
             config.montoMinimo5pctServiciosCents,
@@ -258,7 +264,7 @@ export async function confirmarAsistencia(
         tipo: reconfirmando ? "reconfirmacion" : "confirmacion",
       });
 
-      return { idnotificacion: idnotif, esReconfirmacion: reconfirmando };
+      return { idnotificacion: idnotif, esReconfirmacion: reconfirmando, resultado: resultadoActual };
     }));
   } catch (error) {
     if (esViolacionDeUnicidad(error)) {
@@ -301,12 +307,7 @@ export async function editarConfirmacion(
     throw new HttpError(409, "Tu confirmación está cancelada — reconfirmá con POST /confirmaciones en vez de editar.");
   }
 
-  const itemsResueltos = await resolverSeleccion(input.items);
-  const config = await leerConfiguracionDescuentoVigente();
-  const descuento = calcularDescuento(itemsResueltos, config);
-  const resultado = resultadoDesdeDescuento(descuento);
-
-  const idnotificacion = await withTransaction(pool, async (client) => {
+  const { idnotificacion, resultado } = await withTransaction(pool, async (client) => {
     // Re-lee y bloquea la fila real — el idslot/estado autoritativos son estos, no los de
     // la lectura de arriba.
     const { rows } = await client.query<ConfirmacionExistente>(
@@ -322,6 +323,14 @@ export async function editarConfirmacion(
     }
 
     await validarVentanaEdicion(actual.idslot, client);
+
+    // Ítems resueltos acá, bajo el client de la transacción — nunca antes de abrirla, mismo
+    // principio que confirmarAsistencia: un ítem desactivado a mitad de sesión no debe poder
+    // guardarse en la edición.
+    const itemsResueltos = await resolverSeleccion(input.items, client);
+    const config = await leerConfiguracionDescuentoVigente();
+    const descuento = calcularDescuento(itemsResueltos, config);
+    const resultado = resultadoDesdeDescuento(descuento);
 
     if (input.nombreCliente) {
       await client.query("UPDATE invitaciones SET nombre_cliente = $1 WHERE idinvitacion = $2", [
@@ -391,11 +400,13 @@ export async function editarConfirmacion(
 
     await reemplazarItemsConfirmacion(client, actual.idconfirmacion, itemsResueltos);
 
-    return crearNotificacionPendiente(client, {
+    const idnotif = await crearNotificacionPendiente(client, {
       idinvitacion,
       idconfirmacion: actual.idconfirmacion,
       tipo: "edicion",
     });
+
+    return { idnotificacion: idnotif, resultado };
   });
 
   await enviarNotificacion(

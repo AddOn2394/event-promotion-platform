@@ -72,6 +72,48 @@ describe("registration — POST /confirmaciones (HU-3), integración contra Post
     expect(res.status).toBe(400);
   });
 
+  // code-review Gate 6: resolverSeleccion/buscarSlotActivoPorId se leían antes de abrir la
+  // transacción y nunca se re-verificaban al escribir — un ítem/slot desactivado por el
+  // admin justo antes del write terminaba confirmándose igual. Corregido leyendo ambos bajo
+  // el client de la transacción (slot) y con `activo = true` en el mismo UPDATE atómico que
+  // toma el cupo (nunca un SELECT previo separado) — este test cubre el caso "existe pero ya
+  // no está activo", que antes solo se probaba para IDs inexistentes.
+  it("rechaza un slot que existe pero fue desactivado, no solo uno inexistente", async () => {
+    const cookie = await loginClienteDePrueba();
+    const { rows } = await pool.query<{ idslot: string }>(
+      "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles, activo) VALUES (now() + interval '12 days', now() + interval '12 days 1 hour', 5, 5, false) RETURNING idslot",
+    );
+    const slotDesactivadoId = rows[0]?.idslot;
+    if (!slotDesactivadoId) throw new Error("No se pudo crear el slot de prueba.");
+
+    const res = await request(app)
+      .post("/confirmaciones")
+      .set("Cookie", cookie)
+      .send({
+        items: [{ catalogoItemId: fixtures.productoId, categoria: "producto" }],
+        slotId: slotDesactivadoId,
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("rechaza un ítem de catálogo que existe pero fue desactivado, no solo uno inexistente", async () => {
+    const cookie = await loginClienteDePrueba();
+    const { rows } = await pool.query<{ idcatalogo: string }>(
+      "INSERT INTO catalogo_items (nombre, categoria, precio_cents, activo) VALUES ('TEST FIXTURE ítem desactivado', 'servicio', 10000, false) RETURNING idcatalogo",
+    );
+    const itemDesactivadoId = rows[0]?.idcatalogo;
+    if (!itemDesactivadoId) throw new Error("No se pudo crear el ítem de prueba.");
+
+    const res = await request(app)
+      .post("/confirmaciones")
+      .set("Cookie", cookie)
+      .send({
+        items: [{ catalogoItemId: itemDesactivadoId, categoria: "servicio" }],
+        slotId: fixtures.slotId,
+      });
+    expect(res.status).toBe(400);
+  });
+
   it("confirma con 2 servicios > Q1,500 → 5%, ignora la categoría enviada por el cliente y usa la real de la DB", async () => {
     const cookie = await loginClienteDePrueba();
     // servicioBarato=50000 + servicioCaro=120000 = 170000 > 150000 → 5% (ADR-005).

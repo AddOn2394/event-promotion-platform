@@ -1,5 +1,6 @@
 # Plan de Desarrollo — Plataforma de Confirmación de Asistencia
 
+> Versión: 1.4 | Fecha: 2026-09-19 — agrega Gate 7 (estilos visuales, Tailwind minimalista) después del cierre de Gate 6; Gate 6 deja de ser el último gate del plan.
 > Versión: 1.3 | Fecha: 2026-09-16 — agrega descuento configurable (ADR-023) y notificaciones con seguimiento de entrega (ADR-024) a Gate 2/Gate 4/Gate 5; corrige exit criterio de Gate 0 (ubicación del schema, ADR-003) y lo marca cerrado
 > Ver `DECISIONES_ARQUITECTURA.md` para el "por qué" de cada decisión referenciada aquí.
 > Regla de cierre de gate (acordada en la entrevista): **tests pasan → `/code-review` sobre el diff → pase del advisor → walkthrough escrito → commit.** Ningún gate se da por cerrado sin los 5 pasos.
@@ -70,6 +71,21 @@ Entregable concreto: **formulario + descuento correcto + confirmación persistid
 ## Gate 6 — Endurecimiento final
 
 **Exit criterio**: Revisión de código final end-to-end (`/code-review` sobre el branch completo, no solo el último diff), accesibilidad básica del formulario público (labels asociados a inputs, foco visible, contraste, navegable por teclado) — **no** una auditoría AXE completa: ese requisito vivía en el `CLAUDE.md` de Angular que se está reemplazando (ADR-001), nunca lo pidió el PDF ni el líder del proyecto explícitamente, así que se reduce a accesibilidad básica salvo que se indique lo contrario. Walkthrough consolidado de todas las fases, limpieza de código muerto/TODOs pendientes, `README.md` del repo actualizado con instrucciones de setup local y link de la demo pública.
+
+**Cerrado 2026-09-19** — ver `spec/todo.md` para el walkthrough. Deja de ser el último gate del plan: se agregó Gate 7 después de este cierre, a pedido del líder del proyecto.
+
+## Gate 7 — Estilos visuales (Tailwind, minimalista)
+
+**Exit criterio**: Pasada de diseño visual sobre `apps/web` completo (pantallas de cliente **y** admin panel — ambas comparten los mismos tokens de `index.css` y componentes de `shared/ui`, así que separarlas rompería la consistencia que ese sistema ya da) hacia una estética minimalista: paleta reducida/neutra, tipografía con jerarquía clara, más espacio en blanco, menos decoración (bordes/sombras/color) que no aporte función. Es **solo visual** — ningún cambio de comportamiento, de contrato, ni de lógica de negocio.
+
+- Revisar y ajustar los tokens de `@theme` en `apps/web/src/index.css` (colores, fuentes) hacia el resultado minimalista — sin introducir un sistema de diseño nuevo ni una librería de componentes (ADR-001/ADR-016 no se reabren; sigue siendo Tailwind puro + los componentes de `shared/ui`).
+- Los cambios de estilo fluyen desde `shared/ui` (`Button`, `Input`, `Select`, `Field`, `Card`, `Table`) hacia afuera — no overrides por pantalla que dupliquen estilos que el componente compartido ya debería dar (mismo principio de "Shared Stylesheet First" de `CLAUDE.md`).
+- Mantener el contraste AA y el `:focus-visible` que Gate 6 ya dejó correctos — un ajuste de paleta que los rompa no es aceptable sin volver a verificarlos.
+- **Verificación visual real en navegador obligatoria** (Chrome, vía las herramientas de automatización) antes de cerrar el gate — Gate 6 dejó pendiente la verificación visual dos veces seguidas (accesibilidad y el formulario de deadline de `SlotsAdminPage`) por no tener el navegador conectado; este gate es puramente visual, así que no cerrar sin haberlo visto renderizado.
+- Correr la suite completa (`npm run test`) para confirmar que ningún test existente dependía de una clase o de texto que el rediseño cambie.
+- Si durante el rediseño aparece algo que parezca un bug de comportamiento (no solo visual), no arreglarlo en silencio dentro de este gate — señalarlo aparte, mismo criterio que el resto del plan.
+
+**Alcance explícitamente fuera de este gate**: no se agrega dark mode, ni animaciones/microinteracciones nuevas, ni un rediseño de la estructura de información (layout de secciones/orden de campos) salvo que haga falta para el resultado minimalista — si hace falta, confirmar con el líder del proyecto antes, no asumir.
 
 ---
 

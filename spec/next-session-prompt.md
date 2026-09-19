@@ -1,47 +1,39 @@
-# Prompt — Próxima sesión: Gate 6 (Endurecimiento final)
+# Prompt — Próxima sesión: Gate 7 (Estilos visuales — Tailwind minimalista)
 
-Continuamos `event-promotion-platform`. **Gate 5 (admin panel completo) está cerrado** — ver `spec/ESTADO_PLAN.md` y `spec/todo.md`, entrada "2026-09-17 (Gate 5 — Admin panel completo: CERRADO)". Esta sesión es **Gate 6, el último gate del plan** (`spec/PLAN_DESARROLLO.md`).
+Continuamos `event-promotion-platform`. **Gate 6 (endurecimiento final) está cerrado** — ver `spec/ESTADO_PLAN.md` y `spec/todo.md`, entrada "2026-09-19 (Gate 6 — Endurecimiento final: CERRADO...)". Gate 6 iba a ser el último gate del plan, pero el líder del proyecto agregó **Gate 7** al cierre de esa sesión — ver `spec/PLAN_DESARROLLO.md` v1.4 para el exit criterio completo.
 
-**Pendiente arrastrado, no bloqueante pero confirmar antes de asumir que producción refleja el código actual**: ninguna rama con Gate 2-5 está desplegada en Render todavía. No se confirmó que las variables de entorno (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`, `RESEND_WEBHOOK_SECRET`) estén seteadas en el dashboard de Render, ni que el webhook esté registrado en el dashboard de Resend (URL + secreto). Si esta sesión toca algo que se vaya a verificar en producción, confirmar eso primero — y si el usuario quiere desplegar como parte de este gate, es la primera vez que se hace desde Gate 1.
-
-Lee antes de escribir código: `spec/PLAN_DESARROLLO.md` Gate 6 (sección "Gate 6 — Endurecimiento final"), y repasa `spec/DECISIONES_ARQUITECTURA.md` completo — este gate revisa el branch entero, no un diff aislado, así que cualquier ADR es potencialmente relevante. `spec/ESTADO_PLAN.md` §3 tiene el resumen de decisiones cerradas que no hay que reabrir.
+Lee antes de escribir código: `spec/PLAN_DESARROLLO.md` Gate 7 (sección "Gate 7 — Estilos visuales"), `apps/web/src/index.css` (los tokens `@theme` vigentes) y los componentes de `apps/web/src/shared/ui/` (`Button`, `Input`, `Select`, `Field`, `Card`, `Table`) — son el punto de partida real, no una pantalla individual.
 
 No pidas confirmación entre pasos salvo que algo del spec sea ambiguo o contradiga lo que encuentres en el código — en ese caso, detente y pregunta, no asumas.
 
 ## Qué falta construir
 
-Gate 6 es endurecimiento, no features nuevas — no agregar alcance que el spec no pida.
+Gate 7 es **solo visual** — nada de features nuevas, nada de cambios de comportamiento, de contrato o de lógica de negocio. Es una pasada de diseño hacia una estética minimalista sobre `apps/web` completo (pantallas de cliente **y** admin panel — comparten los mismos tokens/componentes, separarlas rompería la consistencia).
 
-1. **`/code-review` end-to-end sobre el branch completo** (no solo el último diff) — el exit criterio lo pide explícitamente, distinto de los code-reviews por gate que ya se hicieron. Cubre todo: Gate 0 a Gate 5.
-2. **Accesibilidad básica del formulario público** (`ConfirmarPage`, `EditarPage`, `LoginPage` del cliente — no el admin panel, que no lo pide el spec): labels asociados a cada input, foco visible, contraste suficiente, navegación completa por teclado. **No** es una auditoría AXE completa — ese requisito venía del `CLAUDE.md` de Angular que ya se reemplazó (ADR-001), nunca lo pidió el PDF ni el líder del proyecto explícitamente. No agregar tooling de accesibilidad (axe-core, etc.) para esto.
-3. **Limpieza de código muerto/TODOs pendientes** — grep por `TODO`/`FIXME`/`PLACEHOLDER` en `apps/api/src`, `apps/web/src`, `packages/shared-types/src`. Nota: `apps/api/src/db/seed.ts` tiene catálogo y slots marcados `(PLACEHOLDER)` a propósito (pendiente del listado real de servicios/productos/horarios del evento) — confirmar con el usuario si ya tiene los datos reales antes de tocar ese seed, no asumir que "limpieza" significa reemplazarlos sin esos datos en mano.
-4. **`README.md` del repo actualizado** con instrucciones de setup local (`docker compose up`, migraciones, seed, variables de entorno) y link de la demo pública — el link solo si Gate 1-5 ya está desplegado y verificado en Render (ver el pendiente arrastrado arriba); si no, decirlo explícitamente en vez de inventar una URL.
-5. **Walkthrough consolidado de todas las fases** (Gate 0 a Gate 6) — no es lo mismo que los walkthroughs por gate que ya existen en `spec/todo.md`; es un resumen de cierre del proyecto completo.
+1. **Revisar los tokens de `@theme` en `apps/web/src/index.css`** (colores, tipografía) hacia el resultado minimalista: paleta reducida/neutra, jerarquía tipográfica clara, más espacio en blanco, menos decoración (bordes/sombras/color) que no aporte función. Sin introducir un sistema de diseño nuevo ni una librería de componentes — sigue siendo Tailwind puro (ADR-001/ADR-016 no se reabren).
+2. **Los cambios fluyen desde `shared/ui` hacia afuera** — ajustar `Button`/`Input`/`Select`/`Field`/`Card`/`Table` primero; evitar overrides por pantalla que dupliquen algo que el componente compartido ya debería resolver (mismo principio "Shared Stylesheet First" de `CLAUDE.md`).
+3. **Mantener el contraste AA y el `:focus-visible`** que Gate 6 dejó correctos y verificados con luminancia relativa real — un cambio de paleta que los rompa no es aceptable sin re-verificarlos con el mismo rigor.
+4. **Verificación visual real en navegador es obligatoria para cerrar este gate** — usar las herramientas de Chrome (`mcp__claude-in-chrome__*`) para ver el resultado renderizado en las pantallas de cliente y admin antes de dar el gate por cerrado. Gate 6 dejó pendiente la verificación visual dos veces seguidas (accesibilidad y el formulario de deadline de `SlotsAdminPage.tsx`) por no tener Chrome conectado — no repetir eso acá, donde el resultado ES la verificación.
+5. **Correr la suite completa** (`npm run test`, ver el README para el setup de la DB de test) para confirmar que ningún test existente dependía de una clase o de un texto que el rediseño cambie.
 
-## Dos juicios de negocio dejados abiertos en Gate 5 — considerar si tocarlos acá
-
-Ver `spec/todo.md`, entrada de Gate 5, sección "Pendiente explícito":
-- `auth/service.ts`: un login con email+código correctos pero evento ya terminado (`codigoExpirado`) cuenta como intento fallido hacia el rate limiting (ADR-022) — ¿debería? No decidido, dejado a propósito porque es una llamada de negocio, no un bug obvio.
-- `apps/web`: `useEditarConfirmacion`/`useCancelarConfirmacion` no invalidan la query `confirmacion-propia` de TanStack Query — hoy inofensivo (`staleTime: 0`), pero frágil si una pantalla futura mantiene esa query montada. No es un bug visible hoy, es deuda técnica menor.
-
-No hay obligación de resolver ninguno de los dos en Gate 6 — el spec no lo pide — pero si el `/code-review` end-to-end los vuelve a encontrar, ya están documentados, no hace falta re-investigarlos desde cero.
+**Fuera de alcance explícito**: dark mode, animaciones/microinteracciones nuevas, rediseño de la estructura de información (layout de secciones, orden de campos) — si durante el trabajo parece que hace falta tocar eso para lograr el resultado minimalista, confirmar con el líder del proyecto antes, no asumir. Si aparece algo que parezca un bug de comportamiento (no solo visual) mientras se toca una pantalla, señalarlo aparte — no arreglarlo en silencio dentro de este gate.
 
 ## Checklist de cierre del gate — no te lo saltees
 
-1. `/code-review` sobre el branch completo (no un diff).
-2. `advisor`.
-3. Walkthrough consolidado en `spec/todo.md` (fecha de hoy).
-4. Actualiza `spec/ESTADO_PLAN.md`: G6 pasa a "cerrado" — es el último gate, no hay "próximo paso" de features después de este.
-5. Cierra/comenta los issues de GitHub del milestone "G6 - Endurecimiento final": **#35** ("[Backend] G6: Revision de codigo final + tests de integracion completos"), **#36** ("[Frontend] G6: Accesibilidad basica + walkthrough + limpieza + README") — confirmado con `gh issue list --milestone "G6 - Endurecimiento final"` el 2026-09-17, ambos siguen `OPEN`.
-6. Detente.
+1. Verificación visual real en navegador (cliente y admin) — condición de cierre específica de este gate, no opcional.
+2. `npm run test` verde en los 3 workspaces.
+3. `/code-review` sobre el diff de este gate.
+4. `advisor`.
+5. Walkthrough en `spec/todo.md` (fecha del día).
+6. Actualiza `spec/ESTADO_PLAN.md`: G7 pasa a "cerrado".
+7. Si hay issues/milestone de GitHub para G7 (no existían al momento de escribir este prompt — confirmar si el usuario los creó), ciérralos/comentalos.
+8. Detente.
 
 ## Contexto que ya no hace falta redecidir
 
-- Todas las decisiones de ADR-001 a ADR-027 (`spec/DECISIONES_ARQUITECTURA.md`) — Gate 6 revisa el código contra ellas, no las reabre salvo contradicción real encontrada durante la revisión.
-- `packages/shared-types` sigue siendo la única fuente del contrato (ADR-003).
-- El mecanismo de rate limiting por email con `scope` (`cliente`/`admin`, migración 0011) ya está cerrado desde Gate 5 — no rediseñar.
-- El CSV de HU-8 emite una sola columna `nombre`, sin `apellidos` (ADR-027) — no reabrir.
-- Las credenciales/secrets van siempre por variables de entorno.
-- `packages/shared-types/openapi.json` se commitea, regenerar con `npm run generate:openapi -w packages/shared-types` si se toca algún schema (poco probable en Gate 6, que no agrega endpoints).
+- Todas las decisiones de ADR-001 a ADR-029 (`spec/DECISIONES_ARQUITECTURA.md`) — este gate no las reabre salvo contradicción real encontrada durante el trabajo.
+- Stack de estilos: Tailwind v4 vía `@tailwindcss/vite`, sin `tailwind.config.js`, tokens en `@theme` dentro de `apps/web/src/index.css` (ADR-001/ADR-016).
+- El sistema de componentes compartidos (`apps/web/src/shared/ui/`) ya existe y es el punto de apalancamiento correcto — no crear una carpeta de componentes paralela.
+- Las credenciales/secrets van siempre por variables de entorno; ver el README para el setup local completo (verificado de punta a punta en la sesión de Gate 6).
 
 **No hagas commit.** El usuario comitea siempre — deja el árbol de trabajo listo y dilo explícitamente al terminar.

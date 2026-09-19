@@ -6,26 +6,6 @@
   },
   "components": {
     "schemas": {
-      "ConfirmarAsistenciaItem": {
-        "type": "object",
-        "properties": {
-          "catalogoItemId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "categoria": {
-            "type": "string",
-            "enum": [
-              "servicio",
-              "producto"
-            ]
-          }
-        },
-        "required": [
-          "catalogoItemId",
-          "categoria"
-        ]
-      },
       "ConfirmarAsistenciaRequest": {
         "type": "object",
         "properties": {

@@ -6,8 +6,14 @@ import type {
   ConfiguracionDescuento,
   CrearCatalogoItemRequest,
 } from "@event-promotion/shared-types";
+import type { Pool, PoolClient } from "pg";
 import { pool } from "../db/pool.js";
 import { HttpError } from "../shared/http-error.js";
+
+// Permite que esta lectura corra dentro de una transacción abierta (pasando el PoolClient
+// de esa transacción) o fuera de una (pool por default) — mismo patrón que
+// slots/service.ts, necesario para resolver el catálogo bajo el lock de confirmaciones.
+type Queryable = Pool | PoolClient;
 
 type ConfiguracionDescuentoRow = {
   min_servicios_3pct: number;
@@ -65,9 +71,9 @@ export async function listarCatalogoActivo(): Promise<CatalogoItem[]> {
 // motor de descuento y el snapshot siempre usan lo que devuelve esta consulta, resuelto
 // por id contra el catálogo real. Solo ítems activos: uno desactivado a mitad de sesión
 // del cliente no debe poder confirmarse.
-export async function buscarCatalogoActivoPorIds(ids: string[]): Promise<CatalogoItem[]> {
+export async function buscarCatalogoActivoPorIds(ids: string[], db: Queryable = pool): Promise<CatalogoItem[]> {
   if (ids.length === 0) return [];
-  const { rows } = await pool.query<CatalogoItemRow>(
+  const { rows } = await db.query<CatalogoItemRow>(
     "SELECT idcatalogo, nombre, categoria, precio_cents FROM catalogo_items WHERE idcatalogo = ANY($1) AND activo = true",
     [ids],
   );

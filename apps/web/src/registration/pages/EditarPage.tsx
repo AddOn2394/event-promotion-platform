@@ -138,7 +138,7 @@ export function EditarPage() {
   ) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-papel">
-        <p className="text-apagado">Cargando…</p>
+        <p role="status" className="text-apagado">Cargando…</p>
       </main>
     );
   }
@@ -214,9 +214,14 @@ export function EditarPage() {
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
           <div className="flex flex-col gap-6">
-            <CatalogoBuscador catalogo={catalogo} seleccionadosIds={seleccionadosIds} onAgregar={agregarItem} />
+            <CatalogoBuscador
+              catalogo={catalogo}
+              seleccionadosIds={seleccionadosIds}
+              onAgregar={agregarItem}
+              describedBy={errors.items ? "items-error" : undefined}
+            />
             {errors.items ? (
-              <p role="alert" className="text-sm text-alerta">
+              <p id="items-error" role="alert" className="text-sm text-alerta">
                 {errors.items.message}
               </p>
             ) : null}
@@ -232,22 +237,33 @@ export function EditarPage() {
               </Field>
 
               {editar.isError ? (
-                <p role="alert" className="text-sm text-alerta">
+                <p id="editar-error" role="alert" className="text-sm text-alerta">
                   {editar.error.message}
                 </p>
               ) : null}
 
-              <Button type="submit" disabled={editar.isPending} className="self-start">
+              <Button
+                type="submit"
+                disabled={editar.isPending}
+                aria-describedby={editar.isError ? "editar-error" : undefined}
+                className="self-start"
+              >
                 {editar.isPending ? "Guardando…" : "Guardar cambios"}
               </Button>
             </form>
 
             <div className="border-t border-borde pt-4">
-              <Button type="button" variant="danger" onClick={onCancelar} disabled={cancelar.isPending}>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={onCancelar}
+                disabled={cancelar.isPending}
+                aria-describedby={cancelar.isError ? "cancelar-error" : undefined}
+              >
                 {cancelar.isPending ? "Cancelando…" : "Cancelar mi asistencia"}
               </Button>
               {cancelar.isError ? (
-                <p role="alert" className="mt-2 text-sm text-alerta">
+                <p id="cancelar-error" role="alert" className="mt-2 text-sm text-alerta">
                   {cancelar.error.message}
                 </p>
               ) : null}

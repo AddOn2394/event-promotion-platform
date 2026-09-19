@@ -1,9 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { CrearSlotRequestSchema } from "@event-promotion/shared-types";
+import { ActualizarConfiguracionEventoRequestSchema, CrearSlotRequestSchema } from "@event-promotion/shared-types";
 import { Button, Field, Input, Table } from "../../shared/ui";
 import { useActualizarConfiguracionEvento, useConfiguracionEvento } from "../api/useConfiguracionEvento";
 import { useActualizarSlot } from "../api/useActualizarSlot";
@@ -30,7 +30,8 @@ const CrearSlotFormSchema = z.preprocess((valor) => {
   return { ...v, fechaHoraInicio: localAIso(v.fechaHoraInicio), fechaHoraFin: localAIso(v.fechaHoraFin) };
 }, CrearSlotRequestSchema);
 
-type CrearSlotForm = { fechaHoraInicio: string; fechaHoraFin: string; cupoMaximo: number };
+type CrearSlotForm = z.infer<typeof CrearSlotRequestSchema>;
+type DeadlineForm = z.infer<typeof ActualizarConfiguracionEventoRequestSchema>;
 
 // HU-10 (ADR-007/ADR-009/ADR-010): CRUD + soft-delete de slots + N días de deadline.
 export function SlotsAdminPage() {
@@ -49,8 +50,17 @@ export function SlotsAdminPage() {
     reset,
     formState: { errors },
   } = useForm<CrearSlotForm>({
-    resolver: zodResolver(CrearSlotFormSchema) as Resolver<CrearSlotForm>,
+    resolver: zodResolver(CrearSlotFormSchema),
     defaultValues: { fechaHoraInicio: "", fechaHoraFin: "", cupoMaximo: 1 },
+  });
+
+  const {
+    register: registerDeadline,
+    handleSubmit: handleSubmitDeadline,
+    formState: { errors: erroresDeadline },
+  } = useForm<DeadlineForm>({
+    resolver: zodResolver(ActualizarConfiguracionEventoRequestSchema),
+    values: configQuery.data,
   });
 
   useEffect(() => {
@@ -65,12 +75,9 @@ export function SlotsAdminPage() {
     crear.mutate(CrearSlotRequestSchema.parse(values), { onSuccess: () => reset() });
   });
 
-  const onSubmitDeadline = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const dias = Number(formData.get("diasDeadlineEdicion"));
-    actualizarConfig.mutate({ diasDeadlineEdicion: dias });
-  };
+  const onSubmitDeadline = handleSubmitDeadline((values) => {
+    actualizarConfig.mutate(values);
+  });
 
   if (!session) return null;
 
@@ -173,14 +180,16 @@ export function SlotsAdminPage() {
           <h2 className="font-display text-lg font-bold text-tinta">Deadline de edición</h2>
           {configQuery.data ? (
             <form onSubmit={onSubmitDeadline} className="mt-3 flex max-w-sm flex-col gap-4">
-              <Field label="Días antes del slot en que se cierra la edición" htmlFor="diasDeadlineEdicion">
+              <Field
+                label="Días antes del slot en que se cierra la edición"
+                htmlFor="diasDeadlineEdicion"
+                error={erroresDeadline.diasDeadlineEdicion?.message}
+              >
                 <Input
-                  name="diasDeadlineEdicion"
                   type="number"
                   min={0}
                   step={1}
-                  required
-                  defaultValue={configQuery.data.diasDeadlineEdicion}
+                  {...registerDeadline("diasDeadlineEdicion", { valueAsNumber: true })}
                 />
               </Field>
               {actualizarConfig.isError ? (

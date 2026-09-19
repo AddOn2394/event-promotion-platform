@@ -2,20 +2,20 @@ import bcrypt from "bcryptjs";
 import { Pool } from "pg";
 
 // Seed idempotente para Gate 2 (spec/PLAN_DESARROLLO.md). Catálogo y slots son datos
-// PLACEHOLDER — pendiente de reemplazar con el listado real de servicios/productos y
-// horarios del evento (ver spec/todo.md). configuracion_descuento sí usa los valores
+// iniciales de ejemplo — pendiente de reemplazar con el listado real de servicios/productos
+// y horarios del evento (ver spec/todo.md). configuracion_descuento sí usa los valores
 // reales del PDF (ADR-023), no son provisionales.
 
-const CATALOGO_PLACEHOLDER = [
-  { nombre: "Diagnóstico de red (PLACEHOLDER)", categoria: "servicio", precioCents: 50_000 },
-  { nombre: "Instalación de cableado (PLACEHOLDER)", categoria: "servicio", precioCents: 75_000 },
-  { nombre: "Soporte técnico anual (PLACEHOLDER)", categoria: "servicio", precioCents: 120_000 },
-  { nombre: "Router empresarial (PLACEHOLDER)", categoria: "producto", precioCents: 45_000 },
-  { nombre: "Switch de 24 puertos (PLACEHOLDER)", categoria: "producto", precioCents: 60_000 },
-  { nombre: "Access point WiFi 6 (PLACEHOLDER)", categoria: "producto", precioCents: 35_000 },
+const CATALOGO_INICIAL = [
+  { nombre: "Diagnóstico de red", categoria: "servicio", precioCents: 50_000 },
+  { nombre: "Instalación de cableado", categoria: "servicio", precioCents: 75_000 },
+  { nombre: "Soporte técnico anual", categoria: "servicio", precioCents: 120_000 },
+  { nombre: "Router empresarial", categoria: "producto", precioCents: 45_000 },
+  { nombre: "Switch de 24 puertos", categoria: "producto", precioCents: 60_000 },
+  { nombre: "Access point WiFi 6", categoria: "producto", precioCents: 35_000 },
 ] as const;
 
-const SLOTS_PLACEHOLDER = [
+const SLOTS_INICIALES = [
   { inicio: "2026-11-10T14:00:00Z", fin: "2026-11-10T16:00:00Z", cupoMaximo: 30 },
   { inicio: "2026-11-11T10:00:00Z", fin: "2026-11-11T12:00:00Z", cupoMaximo: 30 },
   { inicio: "2026-11-12T16:00:00Z", fin: "2026-11-12T18:00:00Z", cupoMaximo: 30 },
@@ -37,13 +37,13 @@ async function seedCatalogo(pool: Pool): Promise<void> {
     console.log("catalogo_items ya tiene datos — se omite el seed.");
     return;
   }
-  for (const item of CATALOGO_PLACEHOLDER) {
+  for (const item of CATALOGO_INICIAL) {
     await pool.query(
       "INSERT INTO catalogo_items (nombre, categoria, precio_cents) VALUES ($1, $2, $3)",
       [item.nombre, item.categoria, item.precioCents],
     );
   }
-  console.log(`catalogo_items: ${CATALOGO_PLACEHOLDER.length} filas insertadas (placeholder).`);
+  console.log(`catalogo_items: ${CATALOGO_INICIAL.length} filas insertadas.`);
 }
 
 async function seedSlots(pool: Pool): Promise<void> {
@@ -52,13 +52,13 @@ async function seedSlots(pool: Pool): Promise<void> {
     console.log("slots ya tiene datos — se omite el seed.");
     return;
   }
-  for (const slot of SLOTS_PLACEHOLDER) {
+  for (const slot of SLOTS_INICIALES) {
     await pool.query(
       "INSERT INTO slots (fecha_hora_inicio, fecha_hora_fin, cupo_maximo, cupos_disponibles) VALUES ($1, $2, $3, $3)",
       [slot.inicio, slot.fin, slot.cupoMaximo],
     );
   }
-  console.log(`slots: ${SLOTS_PLACEHOLDER.length} filas insertadas (placeholder).`);
+  console.log(`slots: ${SLOTS_INICIALES.length} filas insertadas.`);
 }
 
 async function seedConfiguracionDescuento(pool: Pool): Promise<void> {

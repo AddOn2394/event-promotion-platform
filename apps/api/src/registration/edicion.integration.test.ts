@@ -96,6 +96,31 @@ describe("registration — PATCH /confirmaciones/mia, cancelar y reconfirmar (HU
     expect(notifRows[0]?.tipo).toBe("edicion");
   });
 
+  // code-review Gate 6: resolverSeleccion se llamaba antes de abrir la transacción del
+  // PATCH, igual que en confirmarAsistencia — un ítem desactivado justo antes de editar
+  // podía terminar guardado en la nueva selección. Mismo fix (leer bajo el client de la
+  // transacción) aplicado a este endpoint también, aunque el code-review solo citó POST.
+  it("HU-4 (code-review, read-then-write): rechaza con 400 si un ítem de la nueva selección fue desactivado", async () => {
+    const cookie = await loginClienteDePrueba("editar-item-desactivado@example.com", "222222");
+    await confirmar(cookie, fixtures.servicioBaratoId, "servicio", fixtures.slotId);
+
+    const { rows } = await pool.query<{ idcatalogo: string }>(
+      "INSERT INTO catalogo_items (nombre, categoria, precio_cents, activo) VALUES ('TEST FIXTURE ítem desactivado edición', 'servicio', 10000, false) RETURNING idcatalogo",
+    );
+    const itemDesactivadoId = rows[0]?.idcatalogo;
+    if (!itemDesactivadoId) throw new Error("No se pudo crear el ítem de prueba.");
+
+    const res = await request(app)
+      .patch("/confirmaciones/mia")
+      .set("Cookie", cookie)
+      .send({
+        items: [{ catalogoItemId: itemDesactivadoId, categoria: "servicio" }],
+        slotId: fixtures.slotId,
+      });
+
+    expect(res.status).toBe(400);
+  });
+
   it("HU-4: rechaza con 400 fuera de la ventana de edición (1 segundo después del corte), sin aplicar cambios", async () => {
     // Corte = fecha_hora_inicio - N días. 1 segundo después del corte → fecha_hora_inicio
     // = ahora + N días - 1 segundo.

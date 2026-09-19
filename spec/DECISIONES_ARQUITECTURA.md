@@ -224,5 +224,13 @@
 
 **Impacto**: `apps/api/src/auth/service.ts` — una línea removida, comentario inline con la referencia a este ADR. `apps/api/src/auth/auth.integration.test.ts` actualizado para asertar el conteo real en `intentos_fallidos_login` (no un status code indirecto), consistente con el estándar que el advisor exigió en Gate 5 para este tipo de test. Ninguna migración — el `scope` de `intentos_fallidos_login` (migración 0011) no cambia de forma.
 
+## ADR-029 — Fin del evento (ADR-011) también cuenta un slot inactivo con una confirmación vigente
+
+**Decisión**: `obtenerFinDelEvento()` calcula `MAX(fecha_hora_fin)` sobre los slots con `activo = true`, **más** cualquier slot inactivo que todavía tenga una confirmación en estado `confirmada` apuntándole. Antes solo consideraba slots activos.
+
+**Por qué**: encontrado por el `/code-review` end-to-end de Gate 6. `desactivarSlot` (HU-10, ADR-007) no bloquea desactivar un slot que todavía tiene reservas activas — es un soft-delete administrativo sin esa validación. Si el slot más tardío del evento se desactiva después de que un cliente ya confirmó ahí, el fin del evento (ADR-011) "retrocedía" a un slot anterior y ese cliente quedaba con el código expirado (`codigoExpirado()` → 401) aunque su horario real todavía no había pasado — una limpieza administrativa terminaba bloqueando a un cliente legítimo con una reserva vigente. La fórmula "último slot activo" ya estaba ratificada en Gate 4; este es un caso borde que esa decisión no contempló, así que se consultó de nuevo con el líder del proyecto en vez de decidirlo en silencio (entre: ignorar solo slots con reservas activas — elegida; ignorar `activo` por completo; o dejarlo como estaba y documentar el riesgo). Un slot inactivo sin ninguna confirmación vigente sigue excluido del cálculo.
+
+**Impacto**: `apps/api/src/slots/service.ts` (`obtenerFinDelEvento`) — un `OR` agregado a la consulta, comentario inline con la referencia a este ADR. Test nuevo en `apps/api/src/auth/auth.integration.test.ts` (falsificado: revertir el fix hace que el test falle con 401 en vez del 200 esperado). Ninguna migración.
+
 ## Gates abiertos — resueltos
 

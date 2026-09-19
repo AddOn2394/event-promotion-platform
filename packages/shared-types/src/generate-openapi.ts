@@ -29,13 +29,13 @@ import { ActualizarConfiguracionEventoRequestSchema, ConfiguracionEventoSchema }
 import {
   CancelarConfirmacionResponseSchema,
   ConfirmacionPropiaResponseSchema,
-  ConfirmarAsistenciaItemSchema,
   ConfirmarAsistenciaRequestSchema,
   ConfirmarAsistenciaResponseSchema,
   EditarConfirmacionRequestSchema,
   EditarConfirmacionResponseSchema,
 } from "./confirmaciones.js";
 import { ActualizarConfiguracionDescuentoRequestSchema, ConfiguracionDescuentoSchema } from "./descuento.js";
+import { UuidSchema } from "./primitives.js";
 import {
   ActualizarSlotRequestSchema,
   CrearSlotRequestSchema,
@@ -48,7 +48,6 @@ extendZodWithOpenApi(z);
 
 const registry = new OpenAPIRegistry();
 
-registry.register("ConfirmarAsistenciaItem", ConfirmarAsistenciaItemSchema);
 const ConfirmarRequestSchema = registry.register(
   "ConfirmarAsistenciaRequest",
   ConfirmarAsistenciaRequestSchema,
@@ -258,7 +257,7 @@ registry.registerPath({
   method: "post",
   path: "/admin/invitaciones/{id}/reenviar",
   description: "HU-11 (ADR-026) — reenviar código: genera uno nuevo, invalida el anterior. Requiere sesión de admin",
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: UuidSchema }) },
   responses: {
     200: { description: "Código reenviado", content: { "application/json": { schema: ReenviarCodigoResSchema } } },
     401: { description: "Sin sesión de admin" },
@@ -316,7 +315,7 @@ registry.registerPath({
   path: "/admin/catalogo/{id}",
   description: "HU-9 — reemplazo completo del ítem (incl. activo, para reactivar), requiere sesión de admin",
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: UuidSchema }),
     body: { content: { "application/json": { schema: ActualizarCatalogoItemReqSchema } } },
   },
   responses: {
@@ -330,7 +329,7 @@ registry.registerPath({
   method: "delete",
   path: "/admin/catalogo/{id}",
   description: "HU-9 (ADR-007) — soft-delete (activo=false), requiere sesión de admin",
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: UuidSchema }) },
   responses: {
     204: { description: "Desactivado" },
     401: { description: "Sin sesión de admin" },
@@ -365,7 +364,7 @@ registry.registerPath({
   description:
     "HU-10 (ADR-009) — reemplazo completo del slot; reducir cupoMaximo por debajo de las reservas actuales se rechaza. Requiere sesión de admin",
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: UuidSchema }),
     body: { content: { "application/json": { schema: ActualizarSlotReqSchema } } },
   },
   responses: {
@@ -380,7 +379,7 @@ registry.registerPath({
   method: "delete",
   path: "/admin/slots/{id}",
   description: "HU-10 (ADR-007) — soft-delete (activo=false), requiere sesión de admin",
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: UuidSchema }) },
   responses: {
     204: { description: "Desactivado" },
     401: { description: "Sin sesión de admin" },

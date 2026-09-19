@@ -7,11 +7,12 @@ type Props = {
   catalogo: CatalogoItem[];
   seleccionadosIds: Set<string>;
   onAgregar: (item: CatalogoItem) => void;
+  describedBy?: string;
 };
 
 // ADR-012: el catálogo ya está cargado en memoria (useCatalogo) — el buscador filtra
 // client-side por nombre, nunca dispara una llamada al servidor por tecleo.
-export function CatalogoBuscador({ catalogo, seleccionadosIds, onAgregar }: Props) {
+export function CatalogoBuscador({ catalogo, seleccionadosIds, onAgregar, describedBy }: Props) {
   const [busqueda, setBusqueda] = useState("");
 
   const resultados = useMemo(() => {
@@ -24,7 +25,7 @@ export function CatalogoBuscador({ catalogo, seleccionadosIds, onAgregar }: Prop
   }, [catalogo, busqueda]);
 
   return (
-    <section aria-labelledby="buscador-catalogo" className="flex flex-col gap-4">
+    <section aria-labelledby="buscador-catalogo" aria-describedby={describedBy} className="flex flex-col gap-4">
       <h2 id="buscador-catalogo" className="font-display text-lg font-bold text-tinta">
         Catálogo
       </h2>
