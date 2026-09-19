@@ -1,5 +1,6 @@
 import type { CatalogoItem } from "@event-promotion/shared-types";
 import { formatearCents } from "../../shared/format";
+import { Button, Card } from "../../shared/ui";
 
 type Props = {
   id: string;
@@ -12,19 +13,16 @@ type Props = {
 };
 
 // ADR-004: caja en vivo de una sola categoría (servicios o productos), alimentada al
-// marcar ítems del buscador — con opción de quitar y su propio % de descuento. Tratada
-// visualmente como el talón de un pase: perforado, montos tabulares alineados a la
-// derecha, badge de % solo cuando se alcanza el tier (ese es el elemento firma del gate).
+// marcar ítems del buscador — con opción de quitar y su propio % de descuento. Montos
+// tabulares alineados a la derecha, badge de % solo cuando se alcanza el tier (ese es
+// el elemento firma del gate).
 export function CajaSeleccionados({ id, titulo, items, subtotalCents, descuentoPct, totalCents, onQuitar }: Props) {
   const tituloId = `${id}-titulo`;
 
   return (
-    <section
-      aria-labelledby={tituloId}
-      className="rounded-lg border border-dashed border-borde bg-superficie p-5"
-    >
+    <Card as="section" aria-labelledby={tituloId}>
       <div className="flex items-center justify-between">
-        <h2 id={tituloId} className="font-display text-xs font-semibold uppercase tracking-[0.15em] text-apagado">
+        <h2 id={tituloId} className="font-display text-xs font-semibold uppercase tracking-widest text-apagado">
           {titulo}
         </h2>
         {descuentoPct > 0 ? (
@@ -43,13 +41,9 @@ export function CajaSeleccionados({ id, titulo, items, subtotalCents, descuentoP
               <span className="text-tinta">{item.nombre}</span>
               <div className="flex items-center gap-3">
                 <span className="font-mono tabular-nums text-tinta">{formatearCents(item.precioCents)}</span>
-                <button
-                  type="button"
-                  onClick={() => onQuitar(item.id)}
-                  className="text-xs font-medium text-apagado underline hover:text-alerta"
-                >
+                <Button type="button" variant="link" onClick={() => onQuitar(item.id)}>
                   Quitar {item.nombre}
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -66,6 +60,6 @@ export function CajaSeleccionados({ id, titulo, items, subtotalCents, descuentoP
           <span className="font-mono tabular-nums">{formatearCents(totalCents)}</span>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

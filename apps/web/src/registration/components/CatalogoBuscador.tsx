@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { CatalogoItem } from "@event-promotion/shared-types";
 import { formatearCents } from "../../shared/format";
-import { Input } from "../../shared/ui";
+import { Button, Input } from "../../shared/ui";
 
 type Props = {
   catalogo: CatalogoItem[];
@@ -63,7 +63,7 @@ function ListaCatalogo({
 }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-apagado">{titulo}</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-apagado">{titulo}</h3>
       <ul className="mt-2 flex flex-col gap-2">
         {items.map((item) => (
           <li
@@ -73,14 +73,16 @@ function ListaCatalogo({
             <span className="text-tinta">
               {item.nombre} — <span className="font-mono tabular-nums">{formatearCents(item.precioCents)}</span>
             </span>
-            <button
+            <Button
               type="button"
+              variant="accent"
+              size="sm"
+              className="shrink-0"
               onClick={() => onAgregar(item)}
               disabled={seleccionadosIds.has(item.id)}
-              className="shrink-0 rounded-md border border-jade px-3 py-1 text-xs font-medium text-jade hover:bg-jade/10 disabled:cursor-not-allowed disabled:border-borde disabled:text-apagado disabled:hover:bg-transparent"
             >
               {seleccionadosIds.has(item.id) ? "Agregado" : `Agregar ${item.nombre}`}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

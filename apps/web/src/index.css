@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-tinta: #10233a;
+  --color-tinta: #1a1a18;
   --color-papel: #faf8f4;
   --color-superficie: #ffffff;
   --color-jade: #0f7a5a;
-  --color-borde: #dcd6cc;
-  --color-borde-fuerte: #8c8473;
+  --color-borde: #e2e0dc;
+  --color-borde-fuerte: #84837f;
   --color-alerta: #9b2c2c;
-  --color-apagado: #5a6472;
+  --color-apagado: #5c5c58;
 
   --font-display: "Archivo", sans-serif;
   --font-sans: "Public Sans", sans-serif;

@@ -11,7 +11,7 @@ import {
 import { useClienteSession } from "../../auth/context/ClienteSessionContext";
 import { ApiError } from "../../shared/api/client";
 import { formatearCents } from "../../shared/format";
-import { Button, Field, Input } from "../../shared/ui";
+import { Button, Card, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
 import { CajaSeleccionados } from "../components/CajaSeleccionados";
 import { CatalogoBuscador } from "../components/CatalogoBuscador";
 import { SlotSelector } from "../components/SlotSelector";
@@ -108,128 +108,121 @@ export function ConfirmarPage() {
 
   if (catalogoQuery.isPending || slotsQuery.isPending || configQuery.isPending) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-papel">
-        <p role="status" className="text-apagado">Cargando…</p>
-      </main>
+      <PageShell variant="centrado">
+        <StatusMessage tono="carga">Cargando…</StatusMessage>
+      </PageShell>
     );
   }
 
   if (catalogoQuery.isError || slotsQuery.isError || configQuery.isError) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-papel px-4">
-        <p role="alert" className="text-alerta">
+      <PageShell variant="centrado">
+        <StatusMessage tono="error">
           No se pudo cargar la información del formulario. Intentá de nuevo más tarde.
-        </p>
-      </main>
+        </StatusMessage>
+      </PageShell>
     );
   }
 
   if (confirmar.isSuccess) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-papel px-4 py-12">
-        <div className="w-full max-w-sm text-center">
-          <h1 className="font-display text-2xl font-bold text-tinta">Confirmación registrada</h1>
-          <div className="mt-4 rounded-lg border border-dashed border-borde bg-superficie p-5 text-left text-sm">
-            <p className="flex justify-between text-tinta">
-              <span>Servicios</span>
-              <span className="font-mono tabular-nums">
-                {formatearCents(confirmar.data.subtotalServiciosCents)} — {confirmar.data.descuentoServiciosPct}%
-              </span>
-            </p>
-            <p className="mt-1 flex justify-between text-tinta">
-              <span>Productos</span>
-              <span className="font-mono tabular-nums">
-                {formatearCents(confirmar.data.subtotalProductosCents)} — {confirmar.data.descuentoProductosPct}%
-              </span>
-            </p>
-            <p className="mt-3 flex justify-between border-t border-borde pt-3 font-semibold text-tinta">
-              <span>Total</span>
-              <span className="font-mono tabular-nums">{formatearCents(confirmar.data.totalCents)}</span>
-            </p>
-          </div>
-        </div>
-      </main>
+      <PageShell variant="centrado">
+        <PageHeader title="Confirmación registrada" className="text-center" />
+        <Card className="mt-4 text-left text-sm">
+          <p className="flex justify-between text-tinta">
+            <span>Servicios</span>
+            <span className="font-mono tabular-nums">
+              {formatearCents(confirmar.data.subtotalServiciosCents)} — {confirmar.data.descuentoServiciosPct}%
+            </span>
+          </p>
+          <p className="mt-1 flex justify-between text-tinta">
+            <span>Productos</span>
+            <span className="font-mono tabular-nums">
+              {formatearCents(confirmar.data.subtotalProductosCents)} — {confirmar.data.descuentoProductosPct}%
+            </span>
+          </p>
+          <p className="mt-3 flex justify-between border-t border-borde pt-3 font-semibold text-tinta">
+            <span>Total</span>
+            <span className="font-mono tabular-nums">{formatearCents(confirmar.data.totalCents)}</span>
+          </p>
+        </Card>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-papel px-4 py-10">
-      <div className="mx-auto max-w-4xl">
-        <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-jade">
-          Feria de Promociones
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-bold text-tinta">Confirmar asistencia</h1>
+    <PageShell>
+      <PageHeader eyebrow="Feria de Promociones" title="Confirmar asistencia" />
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
-          <div className="flex flex-col gap-6">
-            <CatalogoBuscador
-              catalogo={catalogo}
-              seleccionadosIds={seleccionadosIds}
-              onAgregar={agregarItem}
-              describedBy={errors.items ? "items-error" : undefined}
-            />
-            {errors.items ? (
-              <p id="items-error" role="alert" className="text-sm text-alerta">
-                {errors.items.message}
-              </p>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
+        <div className="flex flex-col gap-6">
+          <CatalogoBuscador
+            catalogo={catalogo}
+            seleccionadosIds={seleccionadosIds}
+            onAgregar={agregarItem}
+            describedBy={errors.items ? "items-error" : undefined}
+          />
+          {errors.items ? (
+            <StatusMessage id="items-error" tono="error">
+              {errors.items.message}
+            </StatusMessage>
+          ) : null}
+
+          <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+            <SlotSelector slots={slotsQuery.data ?? []} registration={register("slotId")} error={errors.slotId?.message} />
+
+            <Field label="Nombre" htmlFor="nombreCliente" error={errors.nombreCliente?.message}>
+              <Input
+                type="text"
+                {...register("nombreCliente", { setValueAs: (v: string) => (v === "" ? undefined : v) })}
+              />
+            </Field>
+
+            {confirmar.isError ? (
+              <StatusMessage id="confirmar-error" tono="error">
+                {confirmar.error instanceof ApiError && confirmar.error.status === 409
+                  ? "Ya existe una confirmación para esta invitación."
+                  : confirmar.error.message}
+              </StatusMessage>
             ) : null}
 
-            <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-              <SlotSelector slots={slotsQuery.data ?? []} registration={register("slotId")} error={errors.slotId?.message} />
-
-              <Field label="Nombre" htmlFor="nombreCliente" error={errors.nombreCliente?.message}>
-                <Input
-                  type="text"
-                  {...register("nombreCliente", { setValueAs: (v: string) => (v === "" ? undefined : v) })}
-                />
-              </Field>
-
-              {confirmar.isError ? (
-                <p id="confirmar-error" role="alert" className="text-sm text-alerta">
-                  {confirmar.error instanceof ApiError && confirmar.error.status === 409
-                    ? "Ya existe una confirmación para esta invitación."
-                    : confirmar.error.message}
-                </p>
-              ) : null}
-
-              <Button
-                type="submit"
-                disabled={confirmar.isPending}
-                aria-describedby={confirmar.isError ? "confirmar-error" : undefined}
-                className="self-start"
-              >
-                {confirmar.isPending ? "Confirmando…" : "Confirmar asistencia"}
-              </Button>
-            </form>
-          </div>
-
-          {preview ? (
-            <div className="flex flex-col gap-4 lg:sticky lg:top-10">
-              <CajaSeleccionados
-                id="caja-servicios"
-                titulo="Servicios seleccionados"
-                items={itemsSeleccionados.filter((item) => item.categoria === "servicio")}
-                subtotalCents={preview.servicios.subtotalCents}
-                descuentoPct={preview.servicios.descuentoPct}
-                totalCents={preview.servicios.totalCents}
-                onQuitar={quitarItem}
-              />
-              <CajaSeleccionados
-                id="caja-productos"
-                titulo="Productos seleccionados"
-                items={itemsSeleccionados.filter((item) => item.categoria === "producto")}
-                subtotalCents={preview.productos.subtotalCents}
-                descuentoPct={preview.productos.descuentoPct}
-                totalCents={preview.productos.totalCents}
-                onQuitar={quitarItem}
-              />
-              <p className="text-xs text-apagado">
-                Preview — el servidor recalcula el total final al confirmar, este valor no es definitivo.
-              </p>
-            </div>
-          ) : null}
+            <Button
+              type="submit"
+              disabled={confirmar.isPending}
+              aria-describedby={confirmar.isError ? "confirmar-error" : undefined}
+              className="self-start"
+            >
+              {confirmar.isPending ? "Confirmando…" : "Confirmar asistencia"}
+            </Button>
+          </form>
         </div>
+
+        {preview ? (
+          <div className="flex flex-col gap-4 lg:sticky lg:top-10">
+            <CajaSeleccionados
+              id="caja-servicios"
+              titulo="Servicios seleccionados"
+              items={itemsSeleccionados.filter((item) => item.categoria === "servicio")}
+              subtotalCents={preview.servicios.subtotalCents}
+              descuentoPct={preview.servicios.descuentoPct}
+              totalCents={preview.servicios.totalCents}
+              onQuitar={quitarItem}
+            />
+            <CajaSeleccionados
+              id="caja-productos"
+              titulo="Productos seleccionados"
+              items={itemsSeleccionados.filter((item) => item.categoria === "producto")}
+              subtotalCents={preview.productos.subtotalCents}
+              descuentoPct={preview.productos.descuentoPct}
+              totalCents={preview.productos.totalCents}
+              onQuitar={quitarItem}
+            />
+            <p className="text-xs text-apagado">
+              Preview — el servidor recalcula el total final al confirmar, este valor no es definitivo.
+            </p>
+          </div>
+        ) : null}
       </div>
-    </main>
+    </PageShell>
   );
 }

@@ -7,7 +7,19 @@ import {
   type CrearInvitacionRequest,
 } from "@event-promotion/shared-types";
 import { ApiError } from "../../shared/api/client";
-import { Button, Field, Input, Table } from "../../shared/ui";
+import {
+  Button,
+  Field,
+  Input,
+  PageHeader,
+  PageShell,
+  StatusMessage,
+  Table,
+  TableCell,
+  TableHeaderCell,
+  TableHeaderRow,
+  TableRow,
+} from "../../shared/ui";
 import { useCrearInvitacion } from "../api/useCrearInvitacion";
 import { useListarInvitaciones } from "../api/useListarInvitaciones";
 import { useReenviarCodigo } from "../api/useReenviarCodigo";
@@ -60,13 +72,10 @@ export function InvitacionesPage() {
   if (!session) return null;
 
   return (
-    <main className="min-h-screen bg-papel px-4 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <PageShell>
+      <div className="flex flex-col gap-6">
         <AdminNav />
-        <div>
-          <h1 className="font-display text-2xl font-bold text-tinta">Invitar cliente</h1>
-          <p className="mt-1 text-sm text-apagado">Sesión: {session.email}</p>
-        </div>
+        <PageHeader title="Invitar cliente" subtitle={`Sesión: ${session.email}`} />
 
         <form onSubmit={onSubmit} noValidate className="flex max-w-sm flex-col gap-4">
           <Field label="Email del cliente" htmlFor="email" error={errors.email?.message}>
@@ -81,18 +90,14 @@ export function InvitacionesPage() {
           </Field>
 
           {crearInvitacion.isError ? (
-            <p role="alert" className="text-sm text-alerta">
+            <StatusMessage tono="error">
               {crearInvitacion.error instanceof ApiError && crearInvitacion.error.status === 409
                 ? "Ya existe una invitación para este email."
                 : crearInvitacion.error.message}
-            </p>
+            </StatusMessage>
           ) : null}
 
-          {crearInvitacion.isSuccess ? (
-            <p role="status" className="text-sm text-jade">
-              Invitación creada y código enviado.
-            </p>
-          ) : null}
+          {crearInvitacion.isSuccess ? <StatusMessage tono="exito">Invitación creada y código enviado.</StatusMessage> : null}
 
           <Button type="submit" disabled={crearInvitacion.isPending} className="self-start">
             {crearInvitacion.isPending ? "Enviando…" : "Invitar"}
@@ -103,53 +108,54 @@ export function InvitacionesPage() {
           <h2 className="font-display text-lg font-bold text-tinta">Invitaciones</h2>
           {invitacionesQuery.isLoading ? <p className="mt-2 text-sm text-apagado">Cargando…</p> : null}
           {invitacionesQuery.isError ? (
-            <p role="alert" className="mt-2 text-sm text-alerta">
+            <StatusMessage tono="error" className="mt-2">
               No se pudo cargar el listado.
-            </p>
+            </StatusMessage>
           ) : null}
           {invitacionesQuery.data ? (
             <Table className="mt-3">
               <thead>
-                <tr className="border-b border-borde text-left text-xs uppercase tracking-wide text-apagado">
-                  <th scope="col" className="py-2 pr-4">Email</th>
-                  <th scope="col" className="py-2 pr-4">Nombre</th>
-                  <th scope="col" className="py-2 pr-4">Estado</th>
-                  <th scope="col" className="py-2">Acción (HU-11)</th>
-                </tr>
+                <TableHeaderRow>
+                  <TableHeaderCell>Email</TableHeaderCell>
+                  <TableHeaderCell>Nombre</TableHeaderCell>
+                  <TableHeaderCell>Estado</TableHeaderCell>
+                  <TableHeaderCell last>Acción (HU-11)</TableHeaderCell>
+                </TableHeaderRow>
               </thead>
               <tbody>
                 {invitacionesQuery.data.map((invitacion) => (
-                  <tr key={invitacion.idinvitacion} className="border-b border-borde/60">
-                    <td className="py-2 pr-4 text-tinta">{invitacion.email}</td>
-                    <td className="py-2 pr-4 text-tinta">{invitacion.nombreCliente ?? "—"}</td>
-                    <td className="py-2 pr-4 text-tinta">{ETIQUETA_ESTADO[invitacion.estado] ?? invitacion.estado}</td>
-                    <td className="py-2">
+                  <TableRow key={invitacion.idinvitacion}>
+                    <TableCell>{invitacion.email}</TableCell>
+                    <TableCell>{invitacion.nombreCliente ?? "—"}</TableCell>
+                    <TableCell>{ETIQUETA_ESTADO[invitacion.estado] ?? invitacion.estado}</TableCell>
+                    <TableCell last>
                       <Button
                         type="button"
                         variant="secondary"
+                        size="sm"
                         disabled={reenviarCodigo.isPending}
                         onClick={() => reenviarCodigo.mutate(invitacion.idinvitacion)}
                       >
                         Reenviar código
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
               </tbody>
             </Table>
           ) : null}
           {reenviarCodigo.isSuccess ? (
-            <p role="status" className="mt-2 text-sm text-jade">
+            <StatusMessage tono="exito" className="mt-2">
               Código reenviado — el anterior ya no sirve para iniciar sesión.
-            </p>
+            </StatusMessage>
           ) : null}
           {reenviarCodigo.isError ? (
-            <p role="alert" className="mt-2 text-sm text-alerta">
+            <StatusMessage tono="error" className="mt-2">
               {reenviarCodigo.error.message}
-            </p>
+            </StatusMessage>
           ) : null}
         </div>
       </div>
-    </main>
+    </PageShell>
   );
 }

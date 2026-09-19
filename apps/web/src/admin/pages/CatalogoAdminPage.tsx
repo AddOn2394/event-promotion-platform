@@ -4,7 +4,20 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { CrearCatalogoItemRequestSchema, type CrearCatalogoItemRequest } from "@event-promotion/shared-types";
 import { formatearCents } from "../../shared/format";
-import { Button, Field, Input, Select, Table } from "../../shared/ui";
+import {
+  Button,
+  Field,
+  Input,
+  PageHeader,
+  PageShell,
+  Select,
+  StatusMessage,
+  Table,
+  TableCell,
+  TableHeaderCell,
+  TableHeaderRow,
+  TableRow,
+} from "../../shared/ui";
 import { useActualizarCatalogoItem } from "../api/useActualizarCatalogoItem";
 import { useCatalogoAdmin } from "../api/useCatalogoAdmin";
 import { useCrearCatalogoItem } from "../api/useCrearCatalogoItem";
@@ -45,10 +58,10 @@ export function CatalogoAdminPage() {
   if (!session) return null;
 
   return (
-    <main className="min-h-screen bg-papel px-4 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <PageShell>
+      <div className="flex flex-col gap-6">
         <AdminNav />
-        <h1 className="font-display text-2xl font-bold text-tinta">Catálogo</h1>
+        <PageHeader title="Catálogo" />
 
         <form onSubmit={onSubmit} noValidate className="flex max-w-sm flex-col gap-4">
           <Field label="Nombre" htmlFor="nombre" error={errors.nombre?.message}>
@@ -69,16 +82,8 @@ export function CatalogoAdminPage() {
             <Input type="number" min={0} step={1} {...register("precioCents", { valueAsNumber: true })} />
           </Field>
 
-          {crear.isError ? (
-            <p role="alert" className="text-sm text-alerta">
-              {crear.error.message}
-            </p>
-          ) : null}
-          {crear.isSuccess ? (
-            <p role="status" className="text-sm text-jade">
-              Ítem creado.
-            </p>
-          ) : null}
+          {crear.isError ? <StatusMessage tono="error">{crear.error.message}</StatusMessage> : null}
+          {crear.isSuccess ? <StatusMessage tono="exito">Ítem creado.</StatusMessage> : null}
 
           <Button type="submit" disabled={crear.isPending} className="self-start">
             {crear.isPending ? "Creando…" : "Crear ítem"}
@@ -89,26 +94,27 @@ export function CatalogoAdminPage() {
         {catalogoQuery.data ? (
           <Table>
             <thead>
-              <tr className="border-b border-borde text-left text-xs uppercase tracking-wide text-apagado">
-                <th scope="col" className="py-2 pr-4">Nombre</th>
-                <th scope="col" className="py-2 pr-4">Categoría</th>
-                <th scope="col" className="py-2 pr-4">Precio</th>
-                <th scope="col" className="py-2 pr-4">Activo</th>
-                <th scope="col" className="py-2">Acción</th>
-              </tr>
+              <TableHeaderRow>
+                <TableHeaderCell>Nombre</TableHeaderCell>
+                <TableHeaderCell>Categoría</TableHeaderCell>
+                <TableHeaderCell>Precio</TableHeaderCell>
+                <TableHeaderCell>Activo</TableHeaderCell>
+                <TableHeaderCell last>Acción</TableHeaderCell>
+              </TableHeaderRow>
             </thead>
             <tbody>
               {catalogoQuery.data.map((item) => (
-                <tr key={item.id} className="border-b border-borde/60">
-                  <td className="py-2 pr-4 text-tinta">{item.nombre}</td>
-                  <td className="py-2 pr-4 text-tinta">{item.categoria}</td>
-                  <td className="py-2 pr-4 font-mono tabular-nums text-tinta">{formatearCents(item.precioCents)}</td>
-                  <td className="py-2 pr-4 text-tinta">{item.activo ? "Sí" : "No"}</td>
-                  <td className="py-2">
+                <TableRow key={item.id}>
+                  <TableCell>{item.nombre}</TableCell>
+                  <TableCell>{item.categoria}</TableCell>
+                  <TableCell className="font-mono tabular-nums">{formatearCents(item.precioCents)}</TableCell>
+                  <TableCell>{item.activo ? "Sí" : "No"}</TableCell>
+                  <TableCell last>
                     {item.activo ? (
                       <Button
                         type="button"
                         variant="danger"
+                        size="sm"
                         disabled={desactivar.isPending}
                         onClick={() => desactivar.mutate(item.id)}
                       >
@@ -118,6 +124,7 @@ export function CatalogoAdminPage() {
                       <Button
                         type="button"
                         variant="secondary"
+                        size="sm"
                         disabled={actualizar.isPending}
                         onClick={() =>
                           actualizar.mutate({
@@ -129,23 +136,15 @@ export function CatalogoAdminPage() {
                         Reactivar
                       </Button>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
             </tbody>
           </Table>
         ) : null}
-        {actualizar.isError ? (
-          <p role="alert" className="text-sm text-alerta">
-            {actualizar.error.message}
-          </p>
-        ) : null}
-        {desactivar.isError ? (
-          <p role="alert" className="text-sm text-alerta">
-            {desactivar.error.message}
-          </p>
-        ) : null}
+        {actualizar.isError ? <StatusMessage tono="error">{actualizar.error.message}</StatusMessage> : null}
+        {desactivar.isError ? <StatusMessage tono="error">{desactivar.error.message}</StatusMessage> : null}
       </div>
-    </main>
+    </PageShell>
   );
 }

@@ -366,3 +366,76 @@ El líder del proyecto pidió, al cierre de la sesión de Gate 6, agregar una fa
 Solo trabajo de planeación en esta entrada — sin cambios de código: `spec/PLAN_DESARROLLO.md` (v1.4) con el exit criterio completo de Gate 7 (tokens de `index.css`, cambios desde `shared/ui` hacia afuera, mantener contraste/foco de Gate 6, verificación visual real en navegador obligatoria para cerrar — a diferencia de Gate 6, que la dejó pendiente dos veces por no tener Chrome conectado; fuera de alcance: dark mode, animaciones nuevas, rediseño de layout salvo que haga falta y se confirme antes). `spec/ESTADO_PLAN.md` actualizado (tabla de gates, sección 5). `spec/next-session-prompt.md` reescrito completo para Gate 7 (el contenido histórico de Gate 6 que tenía queda solo en esta entrada de `spec/todo.md`, no duplicado ahí). Sin milestone/issues de GitHub creados todavía para G7.
 
 **Gate 7 — no iniciado.**
+
+---
+
+## 2026-09-19 (Gate 7 — Estilos visuales, Tailwind minimalista: implementado, ABIERTO pendiente de verificación visual del líder)
+
+**Dos desviaciones del texto del gate, confirmadas explícitamente con el líder antes de empezar (no asumidas en silencio):**
+1. **Verificación visual la hace el líder, no el agente.** No había ninguna extensión de Chrome conectada a la sesión (`list_connected_browsers` → `[]`). El criterio de cierre #4 del gate pedía verificación por navegador de parte del agente — se relaja explícitamente: el agente deja el entorno levantado (`docker compose up -d postgres`, `dev:api`, `dev:web`) y el líder revisa las pantallas directamente. Por esto, **Gate 7 queda ABIERTO** aunque el resto del checklist esté verde — nadie más que el líder puede darlo por cerrado.
+2. **Libertad de layout.** El gate ponía "rediseño de la estructura de información" fuera de alcance salvo confirmación previa — el líder confirmó libertad para reorganizar, lo que habilitó los componentes `PageShell`/`PageHeader` nuevos (ver abajo) y la unificación de anchos.
+
+**Paleta**: dirección elegida por el líder fue "neutralizar, papel cálido queda" — `papel`/`superficie`/`jade`/`alerta` sin cambio; `tinta` (navy → casi-negro neutro), `apagado`, `borde`, `borde-fuerte` (ambos cálidos → grises neutros). Verificado con luminancia relativa real calculada por script (no a ojo ni con herramienta automática, mismo rigor que Gate 6), ratios sobre `apps/web/src/index.css`:
+
+| Par | Ratio | Umbral |
+|---|---|---|
+| `tinta` sobre `papel` / `superficie` | 16.43:1 / 17.43:1 | 4.5:1 |
+| `apagado` sobre `papel` / `superficie` | 6.33:1 / 6.72:1 | 4.5:1 |
+| blanco sobre `jade` (Button primario) | 5.31:1 | 4.5:1 |
+| `alerta` sobre `papel` / `superficie` | 7.10:1 / 7.53:1 | 4.5:1 |
+| `jade` sobre `papel` / sobre tinte `jade/10` | 5.01:1 / 4.64:1 | 4.5:1 |
+| `borde-fuerte` sobre `superficie` (borde de Input/Select) | 3.79:1 | 3:1 |
+| anillo de foco `jade` sobre `papel` / `superficie` | 5.01:1 / 5.31:1 | 3:1 |
+
+Todos pasan con margen. Dos ratios sub-umbral **aceptados a propósito, no por descuido**: `borde` (panel/tabla) sobre `superficie` da 1.32:1 — es un divisor decorativo, no un control ni un objeto gráfico necesario para entender contenido, así que el umbral de 3:1 no aplica (WCAG 1.4.11). Y `papel` vs `superficie` da apenas 1.06:1 — casi invisible; **esto es la razón concreta por la que `Card` mantuvo el borde completo** en vez de solo `border-t` como se intentó primero (ver hallazgo del advisor abajo).
+
+**El inventario inicial (agente de exploración) confirmó que la app ya era ~100% token-pura** — cero clases de paleta Tailwind hardcodeadas, cero `style={{}}`, cero `dark:`. El trabajo real no era limpiar desprolijidad de color sino **estructura duplicada**: shell de página, encabezado y filas de tabla copiados literalmente entre pantallas.
+
+**`shared/ui` — cambios**:
+- `Card`: de `rounded-lg border border-borde bg-superficie p-6` a `rounded-md border border-borde bg-superficie p-5`, ahora polimórfico (prop `as`) para no perder `role="region"` cuando se usa como `<section aria-labelledby>` en `CajaSeleccionados`. Adoptado ahí y en el recibo de `ConfirmarPage`/`EditarPage`, reemplazando el panel punteado (`border-dashed`) que esos 3 sitios hand-rolleaban por separado (tenía cero consumidores antes de este gate).
+- `Button`: prop `size` (`sm`/`md`) y variantes nuevas `accent` (botón "Agregar" del catálogo) y `link` (botón "Quitar" de la caja de selección), absorbiendo los dos únicos `<button>` crudos de la app — preservando el nombre accesible condicional (`Agregar {nombre}` / `Agregado`) que los tests de `CatalogoBuscador` verifican.
+- `Table`: nuevos subcomponentes `TableHeaderRow`/`TableHeaderCell`/`TableRow`/`TableCell` que absorben el `<thead>`/`<tbody>` byte-por-byte idéntico que las 4 tablas de admin repetían.
+- `Field`: el `<p role="alert">` de error ahora es `StatusMessage`, preservando `id={errorId}` (el `cloneElement` de `aria-describedby` depende de ese id).
+- Nuevos: `PageShell` (2 variantes: `ancho`/`centrado` — unifica los 3 shells que existían, colapsando la bifurcación `max-w-5xl`(admin)/`max-w-4xl`(cliente) en un solo `max-w-5xl`), `PageHeader` (eyebrow+título+subtítulo), `StatusMessage` (banner de error/éxito/carga; reenvía `id` — ver hallazgo del advisor).
+- `AdminNav`: `Link` → `NavLink` con estado activo.
+- Se unificó el `tracking` arbitrario de los dos labels de sección pequeños (`CajaSeleccionados` h2 `0.15em`, `CatalogoBuscador` h3 `0.1em`) a `tracking-widest` (stock, 0.1em) — eran el mismo patrón visual con dos valores distintos. El eyebrow (`0.2em`, ahora centralizado en `PageHeader`) y el `tracking-wide` de encabezados de tabla se dejaron deliberadamente distintos — roles visuales distintos (kicker de marca vs. grilla de datos densa), no la misma duplicación.
+
+**Cambios visibles que el líder debe saber que son deliberados, no bugs**: `ConfirmarPage`/`EditarPage` pasan de `max-w-4xl` a `max-w-5xl` (unificación de shells); los 2 banners de error a pantalla completa pasan a `text-sm` (antes tamaño default, ahora empatan con el resto de banners vía `StatusMessage`).
+
+**Lo que NO se tocó, reportado aparte por no ser puramente visual** (mismo criterio que el resto del plan — nada de esto se arregló en silencio dentro de este gate):
+1. Tres `<label>` hand-rolled (`CatalogoBuscador.tsx`, `ConfirmacionesPage.tsx`, `CatalogoAdminPage.tsx`) no se convirtieron a `<Field>` — ya usan la clase idéntica, pero convertirlos inyectaría `id`/`aria-*` vía `cloneElement`, cambio de DOM no de estilo.
+2. Los 4 estados de carga inline (`Cargando…`) siguen sin `role="status"` mientras los de pantalla completa sí lo tienen — inconsistencia real de accesibilidad, pero agregar el rol es comportamiento nuevo.
+3. Las 4 tablas de admin siguen sin estado vacío (headers sin filas si `data` está vacío) — arreglarlo exige texto visible nuevo.
+
+**`advisor` — 2 pases, encontró y se corrigieron 2 problemas reales antes del `/code-review`:**
+- **`Card` sin borde perceptible**: el primer intento dejó `Card` con solo `border-t` (una línea arriba) en vez de borde completo, razonando que "menos decoración" lo justificaba. El advisor pidió verificar los números en vez de confiar en la intención de diseño: `papel` vs `superficie` da 1.06:1, así que dos paneles de `CajaSeleccionados` apilados en el aside de `ConfirmarPage` se hubieran visto como una sola columna blanca continua. Corregido a borde completo (`border border-borde`), manteniendo el token más claro y `p-5` — sigue siendo mucho más silencioso que el `border-lg` punteado original, pero con un límite real.
+- **`Button variant="link"` con estado disabled roto en potencia**: el `disabled:opacity-50` global diluía el único color del botón "Quitar" (`text-apagado`) a ~2.2:1 sobre `papel` si alguna vez se pasara `disabled` (hoy no se usa, pero quedaba como trampa para el futuro). Corregido: la variante `link` señala disabled con `disabled:no-underline` en vez de opacidad, manteniendo el texto legible.
+
+**`/code-review` (medium, acotado a los 21 archivos de Gate 7 — Gate 6 seguía sin commitear en el árbol, así que no se pudo aislar el diff completo)**: 0 hallazgos. Verificó de forma independiente el fix de `Card` (detectó el árbol cambiando a mitad de revisión, re-diffeó y confirmó el estado final con borde completo), los 5 `aria-describedby` reenviados por `StatusMessage`, y ausencia de regresiones en los call sites de `Button` tras la reestructuración de variantes.
+
+**Tests y build**: `npm run test` — 88 (api) + 12 (web) + 20 (shared-types) = 120/120 verde. `npm run build` limpio en los 3 workspaces. **Diagnóstico de entorno, no regresión**: en una sesión de shell nueva, `npm run test` falla en `apps/api` (`FRONTEND_URL no está configurada`, luego `SASL... password must be a string`) hasta exportar `DATABASE_URL`/`FRONTEND_URL`/`JWT_SECRET`/`RESEND_WEBHOOK_SECRET` — ya documentado en el README (sección de setup de tests), pero conviene recordarlo porque la próxima sesión lo va a pisar de nuevo si arranca de cero.
+
+**Pendiente explícito — bloquea el cierre del gate**:
+- Verificación visual real en navegador, por el líder: `/login`, `/confirmar`, `/editar`, `/admin/login`, `/admin/invitaciones`, `/admin/confirmaciones`, `/admin/catalogo`, `/admin/slots`, `/admin/descuento`.
+- Confirmar si el líder quiere crear milestone/issues de GitHub para G7 (no existían al empezar esta sesión).
+- 3 archivos nuevos sin trackear en git: `apps/web/src/shared/ui/PageShell.tsx`, `PageHeader.tsx`, `StatusMessage.tsx` — no aparecen en `git diff --stat`, hay que `git add` explícito.
+
+**No se hizo commit** — el árbol de trabajo queda listo (Gate 6 + Gate 7 mezclados, sin separar) para que el líder decida cómo commitear.
+
+**Gate 7 — implementado, ABIERTO.** Cierra solo cuando el líder confirme la verificación visual.
+
+---
+
+## 2026-09-19 (Gate 7 — CERRADO tras visto bueno visual del líder; sesión de pruebas end-to-end y Gate 8 agregado al plan)
+
+**Gate 7 — CERRADO.** El líder abrió las pantallas en el navegador y confirmó "visualmente está bien" — la condición de cierre que había quedado abierta (verificación visual, delegada al líder por no haber Chrome conectado). Sin cambios de código en esta entrada.
+
+**Lo que se hizo hoy, en orden**: (1) Gate 7 completo (tokens, `shared/ui`, 9 rutas — ver entrada anterior). (2) Al levantar el entorno para la revisión visual se encontró y corrigió un error mío de operación: reinicié la API sin `DATABASE_URL` (el `.env` no la define, solo `POSTGRES_*`), lo que daba `500 "Error interno"` en el login admin (`SASL: client password must be a string`). No fue un bug de código. Endpoint real del login admin: `POST /admin/auth/login`; ruta de pantalla: `/admin/login` (no `/login/admin`); credenciales de desarrollo en `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`). (3) Prueba end-to-end de correo: la primera invitación quedó `estado_envio = 'fallido'` porque `RESEND_API_KEY` era un valor de relleno (`dev-…`). Con una key real de Resend, el reenvío de código y la confirmación de asistencia llegaron (`enviado`, con `id_mensaje_resend`). Con el remitente de prueba `onboarding@resend.dev` Resend solo entrega al correo de la cuenta de Resend — enviar a terceros exige verificar un dominio propio (pendiente operativo del líder).
+
+**Hallazgo de producto (no bug de código)**: un envío `fallido` se mostraba como "Sin respuesta" en el listado de invitaciones, porque `calcularEstadoInvitacion` (`apps/api/src/admin/service.ts`) solo mapea `rebotado` → "Rebotada" y todo lo demás cae en "Sin respuesta". Es lo que ADR-024/HU-8 especificaban (4 estados), pero deja a ventas sin poder distinguir "el cliente no entró" de "el correo nunca salió". El líder eligió **agregar un quinto estado "Fallida"** (opción 2). No implementado todavía — requiere ADR-030.
+
+**Hallazgo de observabilidad**: `enviarEmail` (`apps/api/src/shared/mailer.ts`) descarta el mensaje de error de Resend; el motivo del fallo de hoy solo se pudo deducir inspeccionando la DB y el `.env`.
+
+**Gate 8 agregado al plan** (`spec/PLAN_DESARROLLO.md` v1.5) a pedido del líder: separador de miles en montos, correos y pantallas de cliente más explicativos/profesionales, estado "Fallida", y una ronda final de `/code-review` + `advisor`. Nada de Gate 8 está implementado. Ver `spec/next-session-prompt.md`.
+
+**Pendiente explícito, arrastrado**: nada de Gate 2-8 desplegado en Render; dominio propio en Resend sin verificar; los dos juicios de negocio de Gate 5 sin resolver; sin milestone/issues de GitHub para G7 ni G8; el árbol de trabajo sigue con Gate 6 (staged) + Gate 7 (sin stage) sin commitear.

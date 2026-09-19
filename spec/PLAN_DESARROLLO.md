@@ -1,5 +1,6 @@
 # Plan de Desarrollo — Plataforma de Confirmación de Asistencia
 
+> Versión: 1.5 | Fecha: 2026-09-19 — agrega Gate 8 (formato numérico, comunicación profesional y estado "Fallida"); Gate 7 cerrado con visto bueno visual del líder.
 > Versión: 1.4 | Fecha: 2026-09-19 — agrega Gate 7 (estilos visuales, Tailwind minimalista) después del cierre de Gate 6; Gate 6 deja de ser el último gate del plan.
 > Versión: 1.3 | Fecha: 2026-09-16 — agrega descuento configurable (ADR-023) y notificaciones con seguimiento de entrega (ADR-024) a Gate 2/Gate 4/Gate 5; corrige exit criterio de Gate 0 (ubicación del schema, ADR-003) y lo marca cerrado
 > Ver `DECISIONES_ARQUITECTURA.md` para el "por qué" de cada decisión referenciada aquí.
@@ -86,6 +87,22 @@ Entregable concreto: **formulario + descuento correcto + confirmación persistid
 - Si durante el rediseño aparece algo que parezca un bug de comportamiento (no solo visual), no arreglarlo en silencio dentro de este gate — señalarlo aparte, mismo criterio que el resto del plan.
 
 **Alcance explícitamente fuera de este gate**: no se agrega dark mode, ni animaciones/microinteracciones nuevas, ni un rediseño de la estructura de información (layout de secciones/orden de campos) salvo que haga falta para el resultado minimalista — si hace falta, confirmar con el líder del proyecto antes, no asumir.
+
+**Cerrado 2026-09-19** — el líder verificó las pantallas en navegador y dio el visto bueno visual; ver `spec/todo.md` para el walkthrough.
+
+## Gate 8 — Formato numérico, comunicación profesional y estado "Fallida"
+
+Pedido del líder tras cerrar Gate 7. A diferencia de Gate 7, **este gate sí cambia texto visible y contenido de correos** — la regla "cero cambios de texto" de Gate 7 ya no aplica; los tests de `apps/web` acoplados a texto (ver `spec/next-session-prompt.md`) se actualizan a propósito, no por accidente.
+
+**Exit criterio**:
+- **Separador de miles en montos**: todo monto en centavos que se muestre a una persona (pantallas de cliente, admin y correos) sale con coma de miles y punto decimal (`Q1,500.00`, `Q12,345.67`). Una sola función de formato, sin duplicar `toFixed(2)` inline (hoy está duplicado en `apps/api/src/registration/service.ts`). El export CSV (`apps/api/src/admin/service.ts`, `centsAQuetzales`) **no** lleva separador — es un formato de máquina y una coma rompería la columna. Las fronteras de ADR-005 (Q1,500.00 vs Q1,500.01) se prueban en el formateador.
+- **Correos profesionales y explicativos** (invitación, confirmación, edición, cancelación, reconfirmación): plantilla HTML compatible con clientes de correo (estilos en línea, sin CSS externo), versión de texto plano, nombre de remitente legible, asunto claro, y contenido explicativo (qué es la feria, qué debe hacer el cliente, detalle de ítems y horario elegido en los correos de confirmación/edición, hasta cuándo puede editar, cómo contactar a ventas). El código de acceso **nunca** aparece en confirmación/edición/cancelación (Gate 4). Todo dato de usuario interpolado en el HTML se escapa.
+- **Pantallas del cliente** (`LoginPage`, `ConfirmarPage`, `EditarPage` y sus pantallas de éxito/cancelación): textos más explicativos y formato más profesional (instrucciones, contexto, estados claros). Mantiene contraste AA, foco visible y los `aria-describedby` de Gate 6.
+- **Estado "Fallida" en el listado de invitaciones** (opción 2 elegida por el líder): quinto estado, distinto de "Sin respuesta" y de "Rebotada". Requiere **ADR-030** antes de implementar (cambia el contrato HU-8/ADR-024: de 4 a 5 estados). Toca `calcularEstadoInvitacion`, `EstadoInvitacionAdmin` en `packages/shared-types`, `openapi.json`, las etiquetas y filtros de `InvitacionesPage`/`ConfirmacionesPage`, el CSV y sus tests. El estado sigue leyendo la notificación de invitación **más reciente**, así que un reenvío exitoso limpia "Fallida".
+- **Observabilidad del envío**: `enviarEmail` hoy descarta el mensaje de error de Resend (solo queda `estado_envio = 'fallido'`); registrar el motivo para no depender de inspeccionar la DB.
+- Ronda final de `/code-review` + `advisor` sobre el estado completo (Gates 6, 7 y 8) — ver checklist de cierre en `spec/next-session-prompt.md`.
+
+**Fuera de alcance**: verificar un dominio propio en Resend y desplegar en Render son tareas operativas del líder (ver `spec/ESTADO_PLAN.md` sección 5), no de código.
 
 ---
 

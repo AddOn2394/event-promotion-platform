@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 const ENLACES = [
   { to: "/admin/invitaciones", label: "Invitaciones" },
@@ -16,9 +16,12 @@ export function AdminNav() {
       <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium">
         {ENLACES.map((enlace) => (
           <li key={enlace.to}>
-            <Link to={enlace.to} className="text-apagado hover:text-jade">
+            <NavLink
+              to={enlace.to}
+              className={({ isActive }) => (isActive ? "text-tinta" : "text-apagado hover:text-jade")}
+            >
               {enlace.label}
-            </Link>
+            </NavLink>
           </li>
         ))}
       </ul>

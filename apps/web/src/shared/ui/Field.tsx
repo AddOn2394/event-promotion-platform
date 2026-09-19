@@ -1,4 +1,5 @@
 import { cloneElement, isValidElement, type ReactElement } from "react";
+import { StatusMessage } from "./StatusMessage";
 
 type Props = {
   label: string;
@@ -28,9 +29,9 @@ export function Field({ label, htmlFor, error, hint, children }: Props) {
       {control}
       {hint && !error ? <p className="text-sm text-apagado">{hint}</p> : null}
       {error ? (
-        <p id={errorId} role="alert" className="text-sm text-alerta">
+        <StatusMessage id={errorId} tono="error">
           {error}
-        </p>
+        </StatusMessage>
       ) : null}
     </div>
   );

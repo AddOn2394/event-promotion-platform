@@ -6,7 +6,7 @@ import {
   ActualizarConfiguracionDescuentoRequestSchema,
   type ActualizarConfiguracionDescuentoRequest,
 } from "@event-promotion/shared-types";
-import { Button, Field, Input } from "../../shared/ui";
+import { Button, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
 import { useActualizarConfiguracionDescuento, useConfiguracionDescuentoAdmin } from "../api/useConfiguracionDescuentoAdmin";
 import { AdminNav } from "../components/AdminNav";
 import { useAdminSession } from "../context/AdminSessionContext";
@@ -43,15 +43,13 @@ export function ConfiguracionDescuentoPage() {
   if (!session) return null;
 
   return (
-    <main className="min-h-screen bg-papel px-4 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <PageShell>
+      <div className="flex flex-col gap-6">
         <AdminNav />
-        <div>
-          <h1 className="font-display text-2xl font-bold text-tinta">Umbrales de descuento</h1>
-          <p className="mt-1 text-sm text-apagado">
-            Los porcentajes (3%/5%) son fijos en código — acá solo se editan los umbrales que los disparan (ADR-023).
-          </p>
-        </div>
+        <PageHeader
+          title="Umbrales de descuento"
+          subtitle="Los porcentajes (3%/5%) son fijos en código — acá solo se editan los umbrales que los disparan (ADR-023)."
+        />
 
         {configQuery.isLoading ? <p className="text-sm text-apagado">Cargando…</p> : null}
         {configQuery.data ? (
@@ -81,15 +79,9 @@ export function ConfiguracionDescuentoPage() {
               <Input type="number" min={1} step={1} {...register("minProductos5pct", { valueAsNumber: true })} />
             </Field>
 
-            {actualizar.isError ? (
-              <p role="alert" className="text-sm text-alerta">
-                {actualizar.error.message}
-              </p>
-            ) : null}
+            {actualizar.isError ? <StatusMessage tono="error">{actualizar.error.message}</StatusMessage> : null}
             {actualizar.isSuccess ? (
-              <p role="status" className="text-sm text-jade">
-                Configuración actualizada — no afecta confirmaciones ya hechas.
-              </p>
+              <StatusMessage tono="exito">Configuración actualizada — no afecta confirmaciones ya hechas.</StatusMessage>
             ) : null}
 
             <Button type="submit" disabled={actualizar.isPending} className="self-start">
@@ -98,6 +90,6 @@ export function ConfiguracionDescuentoPage() {
           </form>
         ) : null}
       </div>
-    </main>
+    </PageShell>
   );
 }

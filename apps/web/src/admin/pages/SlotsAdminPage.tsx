@@ -4,7 +4,19 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { ActualizarConfiguracionEventoRequestSchema, CrearSlotRequestSchema } from "@event-promotion/shared-types";
-import { Button, Field, Input, Table } from "../../shared/ui";
+import {
+  Button,
+  Field,
+  Input,
+  PageHeader,
+  PageShell,
+  StatusMessage,
+  Table,
+  TableCell,
+  TableHeaderCell,
+  TableHeaderRow,
+  TableRow,
+} from "../../shared/ui";
 import { useActualizarConfiguracionEvento, useConfiguracionEvento } from "../api/useConfiguracionEvento";
 import { useActualizarSlot } from "../api/useActualizarSlot";
 import { useCrearSlot } from "../api/useCrearSlot";
@@ -82,10 +94,10 @@ export function SlotsAdminPage() {
   if (!session) return null;
 
   return (
-    <main className="min-h-screen bg-papel px-4 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <PageShell>
+      <div className="flex flex-col gap-6">
         <AdminNav />
-        <h1 className="font-display text-2xl font-bold text-tinta">Slots</h1>
+        <PageHeader title="Slots" />
 
         <form onSubmit={onSubmitSlot} noValidate className="flex max-w-sm flex-col gap-4">
           <Field label="Inicio" htmlFor="fechaHoraInicio" error={errors.fechaHoraInicio?.message}>
@@ -98,16 +110,8 @@ export function SlotsAdminPage() {
             <Input type="number" min={1} step={1} {...register("cupoMaximo", { valueAsNumber: true })} />
           </Field>
 
-          {crear.isError ? (
-            <p role="alert" className="text-sm text-alerta">
-              {crear.error.message}
-            </p>
-          ) : null}
-          {crear.isSuccess ? (
-            <p role="status" className="text-sm text-jade">
-              Slot creado.
-            </p>
-          ) : null}
+          {crear.isError ? <StatusMessage tono="error">{crear.error.message}</StatusMessage> : null}
+          {crear.isSuccess ? <StatusMessage tono="exito">Slot creado.</StatusMessage> : null}
 
           <Button type="submit" disabled={crear.isPending} className="self-start">
             {crear.isPending ? "Creando…" : "Crear slot"}
@@ -117,28 +121,29 @@ export function SlotsAdminPage() {
         {slotsQuery.data ? (
           <Table>
             <thead>
-              <tr className="border-b border-borde text-left text-xs uppercase tracking-wide text-apagado">
-                <th scope="col" className="py-2 pr-4">Inicio</th>
-                <th scope="col" className="py-2 pr-4">Fin</th>
-                <th scope="col" className="py-2 pr-4">Cupo máximo</th>
-                <th scope="col" className="py-2 pr-4">Cupos disponibles</th>
-                <th scope="col" className="py-2 pr-4">Activo</th>
-                <th scope="col" className="py-2">Acción</th>
-              </tr>
+              <TableHeaderRow>
+                <TableHeaderCell>Inicio</TableHeaderCell>
+                <TableHeaderCell>Fin</TableHeaderCell>
+                <TableHeaderCell>Cupo máximo</TableHeaderCell>
+                <TableHeaderCell>Cupos disponibles</TableHeaderCell>
+                <TableHeaderCell>Activo</TableHeaderCell>
+                <TableHeaderCell last>Acción</TableHeaderCell>
+              </TableHeaderRow>
             </thead>
             <tbody>
               {slotsQuery.data.map((slot) => (
-                <tr key={slot.id} className="border-b border-borde/60">
-                  <td className="py-2 pr-4 text-tinta">{new Date(slot.fechaHoraInicio).toLocaleString()}</td>
-                  <td className="py-2 pr-4 text-tinta">{new Date(slot.fechaHoraFin).toLocaleString()}</td>
-                  <td className="py-2 pr-4 text-tinta">{slot.cupoMaximo}</td>
-                  <td className="py-2 pr-4 text-tinta">{slot.cuposDisponibles}</td>
-                  <td className="py-2 pr-4 text-tinta">{slot.activo ? "Sí" : "No"}</td>
-                  <td className="py-2">
+                <TableRow key={slot.id}>
+                  <TableCell>{new Date(slot.fechaHoraInicio).toLocaleString()}</TableCell>
+                  <TableCell>{new Date(slot.fechaHoraFin).toLocaleString()}</TableCell>
+                  <TableCell>{slot.cupoMaximo}</TableCell>
+                  <TableCell>{slot.cuposDisponibles}</TableCell>
+                  <TableCell>{slot.activo ? "Sí" : "No"}</TableCell>
+                  <TableCell last>
                     {slot.activo ? (
                       <Button
                         type="button"
                         variant="danger"
+                        size="sm"
                         disabled={desactivar.isPending}
                         onClick={() => desactivar.mutate(slot.id)}
                       >
@@ -148,6 +153,7 @@ export function SlotsAdminPage() {
                       <Button
                         type="button"
                         variant="secondary"
+                        size="sm"
                         disabled={actualizar.isPending}
                         onClick={() =>
                           actualizar.mutate({
@@ -164,17 +170,13 @@ export function SlotsAdminPage() {
                         Reactivar
                       </Button>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
             </tbody>
           </Table>
         ) : null}
-        {actualizar.isError ? (
-          <p role="alert" className="text-sm text-alerta">
-            {actualizar.error.message}
-          </p>
-        ) : null}
+        {actualizar.isError ? <StatusMessage tono="error">{actualizar.error.message}</StatusMessage> : null}
 
         <div>
           <h2 className="font-display text-lg font-bold text-tinta">Deadline de edición</h2>
@@ -192,16 +194,8 @@ export function SlotsAdminPage() {
                   {...registerDeadline("diasDeadlineEdicion", { valueAsNumber: true })}
                 />
               </Field>
-              {actualizarConfig.isError ? (
-                <p role="alert" className="text-sm text-alerta">
-                  {actualizarConfig.error.message}
-                </p>
-              ) : null}
-              {actualizarConfig.isSuccess ? (
-                <p role="status" className="text-sm text-jade">
-                  Deadline actualizado.
-                </p>
-              ) : null}
+              {actualizarConfig.isError ? <StatusMessage tono="error">{actualizarConfig.error.message}</StatusMessage> : null}
+              {actualizarConfig.isSuccess ? <StatusMessage tono="exito">Deadline actualizado.</StatusMessage> : null}
               <Button type="submit" disabled={actualizarConfig.isPending} className="self-start">
                 Guardar
               </Button>
@@ -209,6 +203,6 @@ export function SlotsAdminPage() {
           ) : null}
         </div>
       </div>
-    </main>
+    </PageShell>
   );
 }

@@ -8,7 +8,7 @@ import {
   type LoginClienteRequest,
 } from "@event-promotion/shared-types";
 import { apiFetch } from "../../shared/api/client";
-import { Button, Field, Input } from "../../shared/ui";
+import { Button, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
 import { useLoginCliente } from "../api/useLoginCliente";
 import { useClienteSession } from "../context/ClienteSessionContext";
 
@@ -57,48 +57,44 @@ export function LoginPage() {
   });
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-papel px-4 py-12">
-      <div className="w-full max-w-sm">
-        <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-jade">
-          Feria de Promociones
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-bold text-tinta">Ingresar</h1>
-        <p className="mt-2 text-sm text-apagado">
-          Usá el email y el código de 6 dígitos que recibiste por correo.
-        </p>
+    <PageShell variant="centrado">
+      <PageHeader
+        eyebrow="Feria de Promociones"
+        title="Ingresar"
+        subtitle="Usá el email y el código de 6 dígitos que recibiste por correo."
+      />
 
-        <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
-          <Field label="Email" htmlFor="email" error={errors.email?.message}>
-            <Input type="email" autoComplete="username" {...register("email")} />
-          </Field>
+      <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
+        <Field label="Email" htmlFor="email" error={errors.email?.message}>
+          <Input type="email" autoComplete="username" {...register("email")} />
+        </Field>
 
-          <Field label="Código de acceso (6 dígitos)" htmlFor="codigo" error={errors.codigo?.message}>
-            <Input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              autoComplete="one-time-code"
-              className="font-mono text-lg tracking-[0.3em]"
-              {...register("codigo")}
-            />
-          </Field>
+        <Field label="Código de acceso (6 dígitos)" htmlFor="codigo" error={errors.codigo?.message}>
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            autoComplete="one-time-code"
+            className="font-mono text-lg tracking-[0.3em]"
+            {...register("codigo")}
+          />
+        </Field>
 
-          {login.isError ? (
-            <p id="login-error" role="alert" className="text-sm text-alerta">
-              {login.error.message}
-            </p>
-          ) : null}
+        {login.isError ? (
+          <StatusMessage id="login-error" tono="error">
+            {login.error.message}
+          </StatusMessage>
+        ) : null}
 
-          <Button
-            type="submit"
-            disabled={login.isPending || redirigiendo}
-            aria-describedby={login.isError ? "login-error" : undefined}
-            className="mt-2"
-          >
-            {login.isPending || redirigiendo ? "Ingresando…" : "Ingresar"}
-          </Button>
-        </form>
-      </div>
-    </main>
+        <Button
+          type="submit"
+          disabled={login.isPending || redirigiendo}
+          aria-describedby={login.isError ? "login-error" : undefined}
+          className="mt-2"
+        >
+          {login.isPending || redirigiendo ? "Ingresando…" : "Ingresar"}
+        </Button>
+      </form>
+    </PageShell>
   );
 }

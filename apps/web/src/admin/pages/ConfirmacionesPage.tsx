@@ -3,7 +3,17 @@ import { useNavigate } from "react-router-dom";
 import type { EstadoInvitacionAdmin } from "@event-promotion/shared-types";
 import { API_URL } from "../../shared/api/client";
 import { formatearCents } from "../../shared/format";
-import { Select, Table } from "../../shared/ui";
+import {
+  PageHeader,
+  PageShell,
+  Select,
+  StatusMessage,
+  Table,
+  TableCell,
+  TableHeaderCell,
+  TableHeaderRow,
+  TableRow,
+} from "../../shared/ui";
 import { useConfirmacionesAdmin } from "../api/useConfirmacionesAdmin";
 import { AdminNav } from "../components/AdminNav";
 import { useAdminSession } from "../context/AdminSessionContext";
@@ -35,10 +45,10 @@ export function ConfirmacionesPage() {
   if (!session) return null;
 
   return (
-    <main className="min-h-screen bg-papel px-4 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <PageShell>
+      <div className="flex flex-col gap-6">
         <AdminNav />
-        <h1 className="font-display text-2xl font-bold text-tinta">Confirmaciones</h1>
+        <PageHeader title="Confirmaciones" />
 
         <div className="flex flex-wrap items-end gap-4">
           <div>
@@ -69,38 +79,34 @@ export function ConfirmacionesPage() {
         </div>
 
         {confirmacionesQuery.isLoading ? <p className="text-sm text-apagado">Cargando…</p> : null}
-        {confirmacionesQuery.isError ? (
-          <p role="alert" className="text-sm text-alerta">
-            No se pudo cargar el listado.
-          </p>
-        ) : null}
+        {confirmacionesQuery.isError ? <StatusMessage tono="error">No se pudo cargar el listado.</StatusMessage> : null}
         {confirmacionesQuery.data ? (
           <Table>
             <thead>
-              <tr className="border-b border-borde text-left text-xs uppercase tracking-wide text-apagado">
-                <th scope="col" className="py-2 pr-4">Email</th>
-                <th scope="col" className="py-2 pr-4">Nombre</th>
-                <th scope="col" className="py-2 pr-4">Estado</th>
-                <th scope="col" className="py-2 pr-4">Slot</th>
-                <th scope="col" className="py-2">Total</th>
-              </tr>
+              <TableHeaderRow>
+                <TableHeaderCell>Email</TableHeaderCell>
+                <TableHeaderCell>Nombre</TableHeaderCell>
+                <TableHeaderCell>Estado</TableHeaderCell>
+                <TableHeaderCell>Slot</TableHeaderCell>
+                <TableHeaderCell last>Total</TableHeaderCell>
+              </TableHeaderRow>
             </thead>
             <tbody>
               {confirmacionesQuery.data.map((c) => (
-                <tr key={c.idinvitacion} className="border-b border-borde/60">
-                  <td className="py-2 pr-4 text-tinta">{c.email}</td>
-                  <td className="py-2 pr-4 text-tinta">{c.nombreCliente ?? "—"}</td>
-                  <td className="py-2 pr-4 text-tinta">{ETIQUETA_ESTADO[c.estado]}</td>
-                  <td className="py-2 pr-4 text-tinta">{c.slot ? new Date(c.slot.fechaHoraInicio).toLocaleString() : "—"}</td>
-                  <td className="py-2 font-mono tabular-nums text-tinta">
+                <TableRow key={c.idinvitacion}>
+                  <TableCell>{c.email}</TableCell>
+                  <TableCell>{c.nombreCliente ?? "—"}</TableCell>
+                  <TableCell>{ETIQUETA_ESTADO[c.estado]}</TableCell>
+                  <TableCell>{c.slot ? new Date(c.slot.fechaHoraInicio).toLocaleString() : "—"}</TableCell>
+                  <TableCell last className="font-mono tabular-nums">
                     {c.totalCents !== null ? formatearCents(c.totalCents) : "—"}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
             </tbody>
           </Table>
         ) : null}
       </div>
-    </main>
+    </PageShell>
   );
 }
