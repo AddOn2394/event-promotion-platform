@@ -75,6 +75,23 @@
           "editableHastaEn": {
             "type": "string",
             "format": "date-time"
+          },
+          "horario": {
+            "type": "object",
+            "properties": {
+              "fechaHoraInicio": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "fechaHoraFin": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "fechaHoraInicio",
+              "fechaHoraFin"
+            ]
           }
         },
         "required": [
@@ -83,7 +100,8 @@
           "subtotalProductosCents",
           "descuentoProductosPct",
           "totalCents",
-          "editableHastaEn"
+          "editableHastaEn",
+          "horario"
         ]
       },
       "CatalogoResponse": {
@@ -360,6 +378,23 @@
           "editableHastaEn": {
             "type": "string",
             "format": "date-time"
+          },
+          "horario": {
+            "type": "object",
+            "properties": {
+              "fechaHoraInicio": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "fechaHoraFin": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "fechaHoraInicio",
+              "fechaHoraFin"
+            ]
           }
         },
         "required": [
@@ -368,7 +403,8 @@
           "subtotalProductosCents",
           "descuentoProductosPct",
           "totalCents",
-          "editableHastaEn"
+          "editableHastaEn",
+          "horario"
         ]
       },
       "CancelarConfirmacionResponse": {

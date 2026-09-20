@@ -38,6 +38,7 @@ describe("ConfirmarPage — nombreCliente vacío no debe romper el submit (bug d
             descuentoProductosPct: 0,
             totalCents: 10000,
             editableHastaEn: "2099-01-01T10:00:00.000Z",
+            horario: { fechaHoraInicio: SLOT.fechaHoraInicio, fechaHoraFin: SLOT.fechaHoraFin },
           },
           201,
         );

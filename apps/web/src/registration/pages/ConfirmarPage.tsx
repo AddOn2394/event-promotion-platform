@@ -42,7 +42,6 @@ export function ConfirmarPage() {
   });
 
   const items = watch("items");
-  const slotIdElegido = watch("slotId");
   const catalogo = catalogoQuery.data ?? [];
 
   const seleccionadosIds = useMemo(() => new Set(items.map((item) => item.catalogoItemId)), [items]);
@@ -136,7 +135,7 @@ export function ConfirmarPage() {
         />
         <ReciboConfirmacion
           items={itemsSeleccionados}
-          slot={slotsQuery.data.find((slot) => slot.id === slotIdElegido)}
+          slot={confirmar.data.horario}
           totales={confirmar.data}
           editableHastaEn={confirmar.data.editableHastaEn}
         />

@@ -15,8 +15,10 @@ import type { CorreoRenderizado } from "./plantillas.js";
 //
 // `armarCorreo` es una función y no el correo ya armado: renderizar una plantilla también puede
 // lanzar (un monto no entero, una fecha inválida), y esa excepción no debe convertirse en un
-// 500 sobre una escritura ya comprometida ni dejar la notificación en 'pendiente' para siempre
-// — mismo contrato de "nunca lanza" que enviarEmail (ADR-024).
+// 500 sobre una escritura ya comprometida ni dejar la notificación en 'pendiente' para siempre.
+// Alcance del "nunca lanza" (ADR-024): armar y enviar el correo. Los UPDATE de marcado de abajo
+// SÍ pueden lanzar si la DB cae justo después del COMMIT — hueco heredado (ya existía en el
+// enviarNotificacion previo), diferido a propósito: ver spec/todo.md.
 export async function enviarCorreoDeNotificacion(params: {
   to: string;
   armarCorreo: () => CorreoRenderizado;

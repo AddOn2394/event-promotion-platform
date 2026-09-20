@@ -133,6 +133,15 @@ describe("registration — POST /confirmaciones (HU-3), integración contra Post
     const limiteEsperado = rows[0]?.limite.toISOString();
     expect(res.body.editableHastaEn).toBe(limiteEsperado);
 
+    const { rows: slotRows } = await pool.query<{ fecha_hora_inicio: Date; fecha_hora_fin: Date }>(
+      "SELECT fecha_hora_inicio, fecha_hora_fin FROM slots WHERE idslot = $1",
+      [fixtures.slotId],
+    );
+    expect(res.body.horario).toEqual({
+      fechaHoraInicio: slotRows[0]?.fecha_hora_inicio.toISOString(),
+      fechaHoraFin: slotRows[0]?.fecha_hora_fin.toISOString(),
+    });
+
     const mia = await request(app).get("/confirmaciones/mia").set("Cookie", cookie);
     expect(mia.body.editableHastaEn).toBe(limiteEsperado);
 

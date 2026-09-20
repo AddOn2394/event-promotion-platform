@@ -4,7 +4,7 @@ import { Card } from "../../shared/ui";
 
 type Props = {
   items: CatalogoItem[];
-  slot: Pick<Slot, "fechaHoraInicio" | "fechaHoraFin"> | undefined;
+  slot: Pick<Slot, "fechaHoraInicio" | "fechaHoraFin">;
   totales: TotalesConfirmacion;
   editableHastaEn: string;
 };
@@ -19,12 +19,10 @@ export function ReciboConfirmacion({ items, slot, totales, editableHastaEn }: Pr
   return (
     <div className="mt-6 flex flex-col gap-4 text-left">
       <Card className="flex flex-col gap-4 text-sm">
-        {slot ? (
-          <p className="text-tinta">
-            <span className="text-apagado">Horario: </span>
-            {formatearHorario(slot)}
-          </p>
-        ) : null}
+        <p className="text-tinta">
+          <span className="text-apagado">Horario: </span>
+          {formatearHorario(slot)}
+        </p>
 
         <ListaDelRecibo titulo="Servicios elegidos" items={servicios} />
         <ListaDelRecibo titulo="Productos elegidos" items={productos} />

@@ -187,6 +187,25 @@ describe("registration — PATCH /confirmaciones/mia, cancelar y reconfirmar (HU
     expect(res.status).toBe(404);
   });
 
+  // ultra-review Gate 8: el recibo de pantalla buscaba el slot en la lista de slots ACTIVOS y
+  // perdía el horario si el admin lo desactivó después de confirmar. La respuesta ahora lo trae
+  // desde el servidor (sin filtrar por activo, ADR-029), igual que el correo.
+  it("editar sin cambiar de slot devuelve el horario aunque el slot ya esté desactivado (ADR-029)", async () => {
+    const slot = await crearSlot("now() + interval '15 days'", "now() + interval '15 days 2 hours'", 5);
+    const cookie = await loginClienteDePrueba("slot-desactivado@example.com", "121212");
+    await confirmar(cookie, fixtures.productoId, "producto", slot);
+    await pool.query("UPDATE slots SET activo = false WHERE idslot = $1", [slot]);
+
+    const res = await request(app)
+      .patch("/confirmaciones/mia")
+      .set("Cookie", cookie)
+      .send({ items: [{ catalogoItemId: fixtures.productoId, categoria: "producto" }], slotId: slot });
+
+    expect(res.status).toBe(200);
+    const { rows } = await pool.query<{ fecha_hora_inicio: Date }>("SELECT fecha_hora_inicio FROM slots WHERE idslot = $1", [slot]);
+    expect(res.body.horario.fechaHoraInicio).toBe(rows[0]?.fecha_hora_inicio.toISOString());
+  });
+
   it("HU-5: cambia de slot exitosamente — libera el viejo y toma el nuevo", async () => {
     const slotOrigen = await crearSlot("now() + interval '10 days'", "now() + interval '10 days 2 hours'", 5);
     const slotDestino = await crearSlot("now() + interval '11 days'", "now() + interval '11 days 2 hours'", 5);

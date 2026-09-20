@@ -82,7 +82,14 @@ async function reemplazarItemsConfirmacion(
 }
 
 function respuestaDesdeDetalle(detalle: DetalleConfirmacion): ConfirmarAsistenciaResponse {
-  return { ...detalle.totales, editableHastaEn: detalle.editableHasta.toISOString() };
+  return {
+    ...detalle.totales,
+    editableHastaEn: detalle.editableHasta.toISOString(),
+    horario: {
+      fechaHoraInicio: detalle.slot.fechaHoraInicio.toISOString(),
+      fechaHoraFin: detalle.slot.fechaHoraFin.toISOString(),
+    },
+  };
 }
 
 async function leerNombreCliente(client: PoolClient, idinvitacion: string): Promise<string | null> {

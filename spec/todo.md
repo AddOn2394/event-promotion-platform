@@ -474,3 +474,15 @@ Todos pasan con margen. Dos ratios sub-umbral **aceptados a propósito, no por d
 **Fuera de alcance / pendiente explícito**: teléfono de ventas ficticio; dominio en Resend sin verificar (con `onboarding@resend.dev` solo llega a la cuenta de Resend); nada de Gate 2-8 desplegado en Render; los dos juicios de negocio de Gate 5; sin milestone/issues de GitHub para G7/G8; `/code-review ultra` (Gates 6-8) lo lanza el líder si lo quiere. **No se hizo commit.**
 
 **Verificación visual (la hace el líder)**: `/login`, `/confirmar` (recibo + explicación del descuento + pasos), `/editar` (fecha límite, recibo, cancelar), `/admin/invitaciones`, `/admin/confirmaciones` (filtro con "Fallida", estados vacíos). Correos: invitar/reenviar, confirmar, editar y cancelar, y mirar la bandeja de la cuenta de Resend (asunto, remitente, tabla en Outlook si se puede, texto plano).
+
+---
+
+## 2026-09-20 (Gate 8 — ronda `/code-review ultra` y advisor, previa al deploy)
+
+`/code-review ultra` sobre `master → e5297909e723` (commits de Gates 6-8; `a2dbaa4` es el de Gate 8, cuyo mensaje sí corresponde a su contenido). 3 hallazgos, todos de baja severidad; analizados con el advisor antes de tocar nada:
+
+1. *Recibo con el horario perdido si el slot fue desactivado* (**corregido**): el recibo buscaba el slot en la lista de slots activos (`GET /slots`), mientras el correo lo lee sin filtrar por `activo` (ADR-029) — pantalla y correo podían discrepar justo en el caso que ADR-029 protege. Ahora `ConfirmarAsistenciaResponse` trae `horario` desde el servidor (misma fuente que el correo) y `ReciboConfirmacion` deja de recibir `slot` opcional. Contrato ampliado → `openapi.json` regenerado. Tests: `registration.integration` (horario en la respuesta) y `edicion.integration` (editar sin cambiar de slot con el slot ya desactivado).
+2. *Subtítulo de `EditarPage` prometía edición "hasta <fecha pasada>"* (**corregido**): tercera instancia del mismo bug ya corregido en `ReciboConfirmacion` y en `emailConfirmacion`; misma rama por vencimiento. Test en `EditarPage.test.tsx`.
+3. *`enviarCorreoDeNotificacion`: los UPDATE de marcado (`enviada`/`fallida`) no están protegidos* (**diferido a propósito, hueco preexistente**): si la DB cae justo tras el COMMIT, la excepción convierte una escritura comprometida en 500. Ya existía en el `enviarNotificacion` previo; ensanchar el try/catch cambia semántica de fallo justo antes de un deploy, así que se deja para un gate posterior. El comentario del archivo se acotó: el "nunca lanza" cubre armar y enviar el correo, no el marcado.
+
+Verificación tras los arreglos: `npm run build` limpio; `npm run test` 112 (api) + 20 (web) + 34 (shared-types) = **166** verde. Nota de entorno: al reiniciarse la máquina, Docker Desktop y el contenedor de Postgres estaban caídos y los tests de api fallaron con `ECONNREFUSED` (infraestructura, no código) hasta levantarlos. **Estos arreglos requieren un segundo commit del líder antes del push.**

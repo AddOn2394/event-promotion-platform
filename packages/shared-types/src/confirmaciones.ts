@@ -37,6 +37,9 @@ export const ConfirmarAsistenciaResponseSchema = TotalesConfirmacionSchema.exten
   // ADR-010: hasta cuándo puede editar o cancelar (N días antes del slot vigente). Lo calcula
   // el servidor — pantalla y correo muestran exactamente la misma fecha.
   editableHastaEn: DatetimeSchema,
+  // Horario del slot vigente, leído por el servidor sin filtrar por activo (ADR-029): el recibo
+  // de pantalla y el correo salen de la misma fuente, aunque el slot se haya desactivado después.
+  horario: z.object({ fechaHoraInicio: DatetimeSchema, fechaHoraFin: DatetimeSchema }),
 });
 
 export type TotalesConfirmacion = z.infer<typeof TotalesConfirmacionSchema>;

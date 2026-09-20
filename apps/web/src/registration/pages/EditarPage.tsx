@@ -63,7 +63,6 @@ export function EditarPage() {
   }, [confirmacionQuery.data, reset]);
 
   const items = watch("items");
-  const slotIdElegido = watch("slotId");
   const catalogo = catalogoQuery.data ?? [];
 
   const seleccionadosIds = useMemo(() => new Set(items.map((item) => item.catalogoItemId)), [items]);
@@ -194,7 +193,7 @@ export function EditarPage() {
         />
         <ReciboConfirmacion
           items={itemsSeleccionados}
-          slot={slotsQuery.data.find((slot) => slot.id === slotIdElegido)}
+          slot={editar.data.horario}
           totales={editar.data}
           editableHastaEn={editar.data.editableHastaEn}
         />
@@ -208,11 +207,15 @@ export function EditarPage() {
         eyebrow="Feria de Promociones"
         title="Editar mi confirmación"
         subtitle={
-          <>
-            Modifique su selección o su horario y guarde los cambios. Puede hacerlo hasta el{" "}
-            <strong>{formatearFechaLimite(confirmacionQuery.data.editableHastaEn)}</strong>; pasada esa fecha,
-            comuníquese con el departamento de ventas.
-          </>
+          new Date(confirmacionQuery.data.editableHastaEn).getTime() > Date.now() ? (
+            <>
+              Modifique su selección o su horario y guarde los cambios. Puede hacerlo hasta el{" "}
+              <strong>{formatearFechaLimite(confirmacionQuery.data.editableHastaEn)}</strong>; pasada esa fecha,
+              comuníquese con el departamento de ventas.
+            </>
+          ) : (
+            "El plazo para modificar o cancelar su confirmación por su cuenta ya venció. Para cualquier cambio, comuníquese con el departamento de ventas."
+          )
         }
       />
 
