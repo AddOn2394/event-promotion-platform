@@ -21,7 +21,7 @@ const SLOTS_INICIALES = [
   { inicio: "2026-11-12T16:00:00Z", fin: "2026-11-12T18:00:00Z", cupoMaximo: 30 },
 ] as const;
 
-// Valores reales del PDF (ADR-023, no placeholder): 2 servicios/3%, 2 servicios+Q1,500/5%,
+// Valores reales del PDF (ADR-023): 2 servicios/3%, 2 servicios+Q1,500/5%,
 // 3 productos/3%, 5 productos/5%.
 const CONFIGURACION_DESCUENTO = {
   minServicios3pct: 2,
