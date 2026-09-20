@@ -2,8 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { CrearCatalogoItemRequestSchema, type CrearCatalogoItemRequest } from "@event-promotion/shared-types";
-import { formatearCents } from "../../shared/format";
+import { CrearCatalogoItemRequestSchema, formatearCents, type CrearCatalogoItemRequest } from "@event-promotion/shared-types";
 import {
   Button,
   Field,
@@ -68,15 +67,12 @@ export function CatalogoAdminPage() {
             <Input type="text" {...register("nombre")} />
           </Field>
 
-          <div>
-            <label htmlFor="categoria" className="text-sm font-medium text-tinta">
-              Categoría
-            </label>
-            <Select id="categoria" className="mt-1.5" {...register("categoria")}>
+          <Field label="Categoría" htmlFor="categoria">
+            <Select {...register("categoria")}>
               <option value="servicio">Servicio</option>
               <option value="producto">Producto</option>
             </Select>
-          </div>
+          </Field>
 
           <Field label="Precio (centavos)" htmlFor="precioCents" error={errors.precioCents?.message}>
             <Input type="number" min={0} step={1} {...register("precioCents", { valueAsNumber: true })} />
@@ -90,8 +86,11 @@ export function CatalogoAdminPage() {
           </Button>
         </form>
 
-        {catalogoQuery.isLoading ? <p className="text-sm text-apagado">Cargando…</p> : null}
-        {catalogoQuery.data ? (
+        {catalogoQuery.isLoading ? <StatusMessage tono="carga">Cargando…</StatusMessage> : null}
+        {catalogoQuery.data?.length === 0 ? (
+          <StatusMessage tono="vacio">Todavía no hay ítems en el catálogo. Cree el primero con el formulario de arriba.</StatusMessage>
+        ) : null}
+        {catalogoQuery.data && catalogoQuery.data.length > 0 ? (
           <Table>
             <thead>
               <TableHeaderRow>

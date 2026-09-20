@@ -61,15 +61,24 @@ export function LoginPage() {
       <PageHeader
         eyebrow="Feria de Promociones"
         title="Ingresar"
-        subtitle="Usá el email y el código de 6 dígitos que recibiste por correo."
+        subtitle="Aquí podrá elegir los servicios y productos de su interés, reservar un horario para asistir a la feria y ver su descuento."
       />
+      <p className="mt-3 text-sm text-apagado">
+        Ingrese con el correo electrónico al que le llegó la invitación y con el código de 6 dígitos que recibió en ese
+        mismo mensaje.
+      </p>
 
       <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
-        <Field label="Email" htmlFor="email" error={errors.email?.message}>
+        <Field label="Correo electrónico" htmlFor="email" error={errors.email?.message}>
           <Input type="email" autoComplete="username" {...register("email")} />
         </Field>
 
-        <Field label="Código de acceso (6 dígitos)" htmlFor="codigo" error={errors.codigo?.message}>
+        <Field
+          label="Código de acceso (6 dígitos)"
+          htmlFor="codigo"
+          error={errors.codigo?.message}
+          hint="Lo recibió por correo electrónico, junto con su invitación."
+        >
           <Input
             type="text"
             inputMode="numeric"
@@ -95,6 +104,10 @@ export function LoginPage() {
           {login.isPending || redirigiendo ? "Ingresando…" : "Ingresar"}
         </Button>
       </form>
+
+      <p className="mt-6 text-sm text-apagado">
+        ¿No encuentra su código? Revise la carpeta de correo no deseado o comuníquese con el departamento de ventas.
+      </p>
     </PageShell>
   );
 }

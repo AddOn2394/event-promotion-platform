@@ -118,7 +118,11 @@ export function SlotsAdminPage() {
           </Button>
         </form>
 
-        {slotsQuery.data ? (
+        {slotsQuery.isLoading ? <StatusMessage tono="carga">Cargando…</StatusMessage> : null}
+        {slotsQuery.data?.length === 0 ? (
+          <StatusMessage tono="vacio">Todavía no hay slots. Cree el primero con el formulario de arriba.</StatusMessage>
+        ) : null}
+        {slotsQuery.data && slotsQuery.data.length > 0 ? (
           <Table>
             <thead>
               <TableHeaderRow>

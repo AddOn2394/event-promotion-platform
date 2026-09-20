@@ -246,7 +246,7 @@ registry.registerPath({
 registry.registerPath({
   method: "get",
   path: "/admin/invitaciones",
-  description: "HU-11 — listado de invitaciones con estado (confirmada/cancelada/sin_respuesta/rebotada), requiere sesión de admin",
+  description: "HU-11 — listado de invitaciones con estado (confirmada/cancelada/sin_respuesta/rebotada/fallida), requiere sesión de admin",
   responses: {
     200: { description: "Invitaciones", content: { "application/json": { schema: ListarInvitacionesResSchema } } },
     401: { description: "Sin sesión de admin" },

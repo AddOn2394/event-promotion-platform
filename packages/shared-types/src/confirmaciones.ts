@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CategoriaCatalogoSchema } from "./catalogo.js";
-import { CentsSchema, PctSchema, UuidSchema } from "./primitives.js";
+import { CentsSchema, DatetimeSchema, PctSchema, UuidSchema } from "./primitives.js";
 
 // Contrato de HU-3 (spec/SPEC_FUNCIONAL.md) — ver ADR-003, ADR-005, ADR-023.
 // Los % de descuento y totales son siempre enteros en centavos (ADR-005 punto 2).
@@ -23,7 +23,9 @@ export const ConfirmarAsistenciaRequestSchema = z.object({
   nombreCliente: z.string().min(1).optional(),
 });
 
-export const ConfirmarAsistenciaResponseSchema = z.object({
+// Los cinco números que el motor de descuento produce (ADR-004/ADR-005). Lo usan también los
+// correos, que no necesitan la fecha límite de la respuesta HTTP.
+export const TotalesConfirmacionSchema = z.object({
   subtotalServiciosCents: CentsSchema,
   descuentoServiciosPct: PctSchema,
   subtotalProductosCents: CentsSchema,
@@ -31,6 +33,13 @@ export const ConfirmarAsistenciaResponseSchema = z.object({
   totalCents: CentsSchema,
 });
 
+export const ConfirmarAsistenciaResponseSchema = TotalesConfirmacionSchema.extend({
+  // ADR-010: hasta cuándo puede editar o cancelar (N días antes del slot vigente). Lo calcula
+  // el servidor — pantalla y correo muestran exactamente la misma fecha.
+  editableHastaEn: DatetimeSchema,
+});
+
+export type TotalesConfirmacion = z.infer<typeof TotalesConfirmacionSchema>;
 export type ConfirmarAsistenciaItem = z.infer<typeof ConfirmarAsistenciaItemSchema>;
 export type ConfirmarAsistenciaRequest = z.infer<typeof ConfirmarAsistenciaRequestSchema>;
 export type ConfirmarAsistenciaResponse = z.infer<typeof ConfirmarAsistenciaResponseSchema>;
@@ -69,6 +78,7 @@ export const ConfirmacionPropiaResponseSchema = z.object({
   subtotalProductosCents: CentsSchema,
   descuentoProductosPct: PctSchema,
   totalCents: CentsSchema,
+  editableHastaEn: DatetimeSchema,
 });
 export type ConfirmacionPropiaItem = z.infer<typeof ConfirmacionPropiaItemSchema>;
 export type ConfirmacionPropiaResponse = z.infer<typeof ConfirmacionPropiaResponseSchema>;

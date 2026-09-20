@@ -154,7 +154,7 @@ Ambos roles requieren autenticación propia desde el primer acceso.
 **Para** preparar el portafolio de promociones personalizado de cada cliente, y actuar proactivamente si un correo no llegó
 
 **Criterios de aceptación**:
-- [ ] Listado filtrable por estado: confirmada / cancelada / sin respuesta (`usada_en IS NULL` y sin rebote) / **rebotada** (`notificaciones.estado_envio = 'rebotado'` para el tipo `invitacion`) — estos 4 estados nunca se agrupan entre sí (ADR-024)
+- [ ] Listado filtrable por estado: confirmada / cancelada / sin respuesta (sin confirmación y sin rebote ni fallo de envío) / **rebotada** (`notificaciones.estado_envio = 'rebotado'` para el tipo `invitacion`) / **fallida** (`estado_envio = 'fallido'`: el correo de invitación nunca salió, ADR-030) — estos 5 estados nunca se agrupan entre sí (ADR-024, ADR-030). El estado de envío es el de la notificación de invitación **más reciente**, así que un reenvío exitoso (HU-11) limpia "fallida"; con confirmación, gana el estado de la confirmación
 - [ ] Exporta CSV con columnas fijas: nombre, email, slot, servicios, productos, subtotal servicios, % descuento servicios, subtotal productos, % descuento productos, total, estado (ADR-013, corregido por ADR-027: una sola columna "nombre" — el modelo de datos no tiene un campo `apellidos` separado, `invitaciones.nombre_cliente` es texto libre desde Gate 2)
 - [ ] Los datos exportados son el snapshot congelado (ADR-006), no un recálculo contra el catálogo actual ni contra la configuración de descuento vigente (ADR-023)
 
@@ -417,6 +417,6 @@ Los schemas Zod viven en `packages/shared-types`, porque `apps/web` los necesita
 
 - **Deadline mal configurado (N=0 o negativo)** → mitigado: el admin panel valida N ≥ 0 al guardar configuración (HU-10, criterio ya incluido) — un N negativo abriría edición después del evento.
 - **Email no entregado (invitación, confirmación, edición, cancelación, reconfirmación)** → mitigado: registro `notificaciones` + webhook de Resend (ADR-024) detecta rebotes/fallos sin depender de que el cliente se queje; ventas los ve como estado distinto en HU-8. El reenvío manual (HU-11) sigue siendo la acción correctiva, pero ahora hay señal proactiva de que hace falta.
-- **Confusión entre "sin respuesta", "rebotada" y "cancelada"** → mitigado: HU-8 los trata como 3 filtros distintos, nunca agrupados como "inactivas" — solo "rebotada" indica un problema de entrega, "sin respuesta" puede ser un cliente que simplemente no ha entrado, "cancelada" tuvo una confirmación previa.
+- **Confusión entre "sin respuesta", "rebotada", "fallida" y "cancelada"** → mitigado: HU-8 los trata como 4 filtros distintos, nunca agrupados como "inactivas" — "rebotada" y "fallida" indican un problema de entrega (del buzón del cliente y del sistema, respectivamente, ADR-030), "sin respuesta" puede ser un cliente que simplemente no ha entrado, "cancelada" tuvo una confirmación previa.
 - **Umbral de descuento configurado de forma incoherente (5% más débil que 3%)** → mitigado: HU-12 valida esa coherencia al guardar, antes de que afecte ninguna confirmación nueva.
 - **Cambio de umbral afecta retroactivamente confirmaciones pasadas** → mitigado: cada confirmación congela los umbrales que usó (ADR-023) — un cambio de configuración nunca reinterpreta una confirmación ya hecha.

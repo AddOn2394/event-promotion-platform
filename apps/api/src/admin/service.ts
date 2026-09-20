@@ -10,8 +10,9 @@ import type {
 import { pool } from "../db/pool.js";
 import { withTransaction } from "../shared/db-transaction.js";
 import { HttpError } from "../shared/http-error.js";
-import { enviarEmail } from "../shared/mailer.js";
-import { crearNotificacionPendiente, marcarNotificacionEnviada, marcarNotificacionFallida } from "../shared/notificaciones.js";
+import { enviarCorreoDeNotificacion } from "../shared/email/envio.js";
+import { emailInvitacion } from "../shared/email/plantillas.js";
+import { crearNotificacionPendiente } from "../shared/notificaciones.js";
 import { esViolacionDeUnicidad } from "../shared/pg-error.js";
 import { intentosFallidosExcedidos, limpiarIntentosFallidos, registrarIntentoFallido } from "../shared/rate-limit.js";
 
@@ -28,7 +29,7 @@ export type SesionAdmin = {
 // Mismo criterio de "no enumeration" que HU-2 (buena práctica de seguridad estándar,
 // no una regla de negocio distinta para admin).
 const CREDENCIALES_INVALIDAS = "Email o contraseña inválidos.";
-const DEMASIADOS_INTENTOS = "Demasiados intentos. Probá de nuevo en unos minutos.";
+const DEMASIADOS_INTENTOS = "Demasiados intentos. Intente de nuevo en unos minutos.";
 
 // ADR-022 (arrastrado explícitamente de Gate 4 a Gate 5): mismo mecanismo que el login de
 // cliente (shared/rate-limit.ts), pero con scope="admin" — un ataque contra el email del
@@ -68,14 +69,6 @@ function construirLinkInvitacion(email: string): string {
   return `${base}/login?email=${encodeURIComponent(email)}`;
 }
 
-function invitacionEmailHtml(codigo: string, link: string): string {
-  return `
-    <p>Fuiste invitado a confirmar tu asistencia a la feria de promociones.</p>
-    <p>Tu código de acceso es: <strong>${codigo}</strong></p>
-    <p><a href="${link}">Ingresá aquí para confirmar tu asistencia</a></p>
-  `;
-}
-
 export async function crearInvitacion(params: {
   email: string;
   nombreCliente: string | null;
@@ -113,18 +106,18 @@ export async function crearInvitacion(params: {
     throw error;
   }
 
-  const link = construirLinkInvitacion(params.email);
-  const resultadoEnvio = await enviarEmail({
+  await enviarCorreoDeNotificacion({
     to: params.email,
-    subject: "Tu código de acceso — Feria de Promociones",
-    html: invitacionEmailHtml(codigo, link),
+    armarCorreo: () =>
+      emailInvitacion({
+        variante: "invitacion",
+        nombreCliente: params.nombreCliente,
+        codigo,
+        link: construirLinkInvitacion(params.email),
+      }),
+    idnotificacion: creado.idnotificacion,
+    tipo: "invitacion",
   });
-
-  if (resultadoEnvio.exito) {
-    await marcarNotificacionEnviada(pool, creado.idnotificacion, resultadoEnvio.idMensaje);
-  } else {
-    await marcarNotificacionFallida(pool, creado.idnotificacion);
-  }
 
   return {
     idinvitacion: creado.idinvitacion,
@@ -144,14 +137,17 @@ type InvitacionConEstadoRow = {
   invitacion_estado_envio: "pendiente" | "enviado" | "fallido" | "rebotado" | null;
 };
 
-// HU-8: los 4 estados nunca se agrupan (ADR-024) — una fila con confirmación usa su
-// propio estado; sin confirmación, un rebote de la notificación de invitación es
-// "rebotada", y su ausencia es "sin respuesta" (independiente de usada_en: ADR-024
-// distingue "rebotada" de "sin respuesta" incluso si el cliente sí llegó a loguearse
-// después de que el correo original rebotó — el rebote es del correo, no de la sesión).
+// HU-8: los 5 estados nunca se agrupan (ADR-024, ADR-030) — una fila con confirmación usa su
+// propio estado; sin confirmación, un rebote de la notificación de invitación es "rebotada",
+// un fallo de envío es "fallida", y todo lo demás (enviado, pendiente) es "sin respuesta"
+// (independiente de usada_en: ADR-024 distingue "rebotada" de "sin respuesta" incluso si el
+// cliente sí llegó a loguearse después de que el correo original rebotó — el rebote es del
+// correo, no de la sesión). Solo cuenta la notificación de invitación más reciente (la query
+// la trae con LATERAL ... LIMIT 1), así que un reenvío exitoso limpia "fallida" sin más lógica.
 function calcularEstadoInvitacion(row: InvitacionConEstadoRow): EstadoInvitacionAdmin {
   if (row.confirmacion_estado) return row.confirmacion_estado;
   if (row.invitacion_estado_envio === "rebotado") return "rebotada";
+  if (row.invitacion_estado_envio === "fallido") return "fallida";
   return "sin_respuesta";
 }
 
@@ -186,8 +182,8 @@ export async function listarInvitaciones(): Promise<InvitacionAdmin[]> {
 // patrón de crearInvitacion, sin reimplementarlo. No revoca JWTs ya emitidos (ADR-026):
 // invalidar el código solo impide un login *nuevo* con el código viejo.
 export async function reenviarCodigo(idinvitacion: string): Promise<ReenviarCodigoResponse> {
-  const { rows } = await pool.query<{ email: string }>(
-    "SELECT email FROM invitaciones WHERE idinvitacion = $1",
+  const { rows } = await pool.query<{ email: string; nombre_cliente: string | null }>(
+    "SELECT email, nombre_cliente FROM invitaciones WHERE idinvitacion = $1",
     [idinvitacion],
   );
   const invitacion = rows[0];
@@ -210,18 +206,18 @@ export async function reenviarCodigo(idinvitacion: string): Promise<ReenviarCodi
     });
   });
 
-  const link = construirLinkInvitacion(invitacion.email);
-  const resultadoEnvio = await enviarEmail({
+  await enviarCorreoDeNotificacion({
     to: invitacion.email,
-    subject: "Tu nuevo código de acceso — Feria de Promociones",
-    html: invitacionEmailHtml(codigo, link),
+    armarCorreo: () =>
+      emailInvitacion({
+        variante: "reenvio",
+        nombreCliente: invitacion.nombre_cliente,
+        codigo,
+        link: construirLinkInvitacion(invitacion.email),
+      }),
+    idnotificacion,
+    tipo: "invitacion",
   });
-
-  if (resultadoEnvio.exito) {
-    await marcarNotificacionEnviada(pool, idnotificacion, resultadoEnvio.idMensaje);
-  } else {
-    await marcarNotificacionFallida(pool, idnotificacion);
-  }
 
   // Un reenvío entrega un código válido nuevo — un lockout de ADR-022 causado por
   // intentos fallidos con el código viejo/perdido no debe seguir bloqueando al cliente
@@ -296,6 +292,9 @@ export async function listarConfirmacionesAdmin(filtroEstado?: EstadoInvitacionA
   return filtroEstado ? confirmaciones.filter((c) => c.estado === filtroEstado) : confirmaciones;
 }
 
+// Formato de máquina, a propósito distinto de formatearCents (ADR-031): sin "Q" y sin coma de
+// miles. Una coma dentro de la celda obligaría a csvEscapar a entrecomillarla y Excel dejaría
+// de leer la columna como número.
 function centsAQuetzales(cents: number | null): string {
   return cents === null ? "" : (cents / 100).toFixed(2);
 }

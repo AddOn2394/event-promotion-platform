@@ -1,5 +1,4 @@
-import type { CatalogoItem } from "@event-promotion/shared-types";
-import { formatearCents } from "../../shared/format";
+import { formatearCents, type CatalogoItem } from "@event-promotion/shared-types";
 import { Button, Card } from "../../shared/ui";
 
 type Props = {
@@ -33,7 +32,7 @@ export function CajaSeleccionados({ id, titulo, items, subtotalCents, descuentoP
       </div>
 
       {items.length === 0 ? (
-        <p className="mt-3 text-sm text-apagado">Ningún ítem seleccionado todavía.</p>
+        <p className="mt-3 text-sm text-apagado">Aún no ha seleccionado ningún ítem.</p>
       ) : (
         <ul className="mt-3 flex flex-col gap-2">
           {items.map((item) => (
@@ -56,7 +55,7 @@ export function CajaSeleccionados({ id, titulo, items, subtotalCents, descuentoP
           <span className="font-mono tabular-nums">{formatearCents(subtotalCents)}</span>
         </div>
         <div className="mt-1 flex justify-between font-semibold text-tinta">
-          <span>Total (preview)</span>
+          <span>Total estimado</span>
           <span className="font-mono tabular-nums">{formatearCents(totalCents)}</span>
         </div>
       </div>

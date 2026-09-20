@@ -32,10 +32,11 @@ export type AdminLoginResponse = z.infer<typeof AdminLoginResponseSchema>;
 export type CrearInvitacionRequest = z.infer<typeof CrearInvitacionRequestSchema>;
 export type CrearInvitacionResponse = z.infer<typeof CrearInvitacionResponseSchema>;
 
-// HU-8: los 4 estados nunca se agrupan entre sí (ADR-024) — "rebotada" es un rebote de la
-// notificación tipo=invitacion, distinto de "sin respuesta" (sin rebote, simplemente
-// usada_en IS NULL) y de "cancelada" (tuvo una confirmación previa).
-export const EstadoInvitacionAdminSchema = z.enum(["confirmada", "cancelada", "sin_respuesta", "rebotada"]);
+// HU-8: los 5 estados nunca se agrupan entre sí (ADR-024, ADR-030) — "rebotada" es un rebote
+// de la notificación tipo=invitacion y "fallida" es que el correo nunca salió; ambos distintos
+// de "sin respuesta" (el correo salió, el cliente simplemente no entró) y de "cancelada"
+// (tuvo una confirmación previa).
+export const EstadoInvitacionAdminSchema = z.enum(["confirmada", "cancelada", "sin_respuesta", "rebotada", "fallida"]);
 
 export const InvitacionAdminSchema = z.object({
   idinvitacion: UuidSchema,

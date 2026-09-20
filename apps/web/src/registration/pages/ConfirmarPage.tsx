@@ -10,10 +10,11 @@ import {
 } from "@event-promotion/shared-types";
 import { useClienteSession } from "../../auth/context/ClienteSessionContext";
 import { ApiError } from "../../shared/api/client";
-import { formatearCents } from "../../shared/format";
-import { Button, Card, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
+import { Button, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
 import { CajaSeleccionados } from "../components/CajaSeleccionados";
 import { CatalogoBuscador } from "../components/CatalogoBuscador";
+import { ExplicacionDescuento } from "../components/ExplicacionDescuento";
+import { ReciboConfirmacion } from "../components/ReciboConfirmacion";
 import { SlotSelector } from "../components/SlotSelector";
 import { useCatalogo } from "../api/useCatalogo";
 import { useConfiguracionDescuento } from "../api/useConfiguracionDescuento";
@@ -41,6 +42,7 @@ export function ConfirmarPage() {
   });
 
   const items = watch("items");
+  const slotIdElegido = watch("slotId");
   const catalogo = catalogoQuery.data ?? [];
 
   const seleccionadosIds = useMemo(() => new Set(items.map((item) => item.catalogoItemId)), [items]);
@@ -118,7 +120,7 @@ export function ConfirmarPage() {
     return (
       <PageShell variant="centrado">
         <StatusMessage tono="error">
-          No se pudo cargar la información del formulario. Intentá de nuevo más tarde.
+          No se pudo cargar la información del formulario. Actualice la página o intente de nuevo en unos minutos.
         </StatusMessage>
       </PageShell>
     );
@@ -127,32 +129,33 @@ export function ConfirmarPage() {
   if (confirmar.isSuccess) {
     return (
       <PageShell variant="centrado">
-        <PageHeader title="Confirmación registrada" className="text-center" />
-        <Card className="mt-4 text-left text-sm">
-          <p className="flex justify-between text-tinta">
-            <span>Servicios</span>
-            <span className="font-mono tabular-nums">
-              {formatearCents(confirmar.data.subtotalServiciosCents)} — {confirmar.data.descuentoServiciosPct}%
-            </span>
-          </p>
-          <p className="mt-1 flex justify-between text-tinta">
-            <span>Productos</span>
-            <span className="font-mono tabular-nums">
-              {formatearCents(confirmar.data.subtotalProductosCents)} — {confirmar.data.descuentoProductosPct}%
-            </span>
-          </p>
-          <p className="mt-3 flex justify-between border-t border-borde pt-3 font-semibold text-tinta">
-            <span>Total</span>
-            <span className="font-mono tabular-nums">{formatearCents(confirmar.data.totalCents)}</span>
-          </p>
-        </Card>
+        <PageHeader
+          title="Su asistencia está confirmada"
+          subtitle="Este es el detalle de su selección."
+          className="text-center"
+        />
+        <ReciboConfirmacion
+          items={itemsSeleccionados}
+          slot={slotsQuery.data.find((slot) => slot.id === slotIdElegido)}
+          totales={confirmar.data}
+          editableHastaEn={confirmar.data.editableHastaEn}
+        />
       </PageShell>
     );
   }
 
   return (
     <PageShell>
-      <PageHeader eyebrow="Feria de Promociones" title="Confirmar asistencia" />
+      <PageHeader
+        eyebrow="Feria de Promociones"
+        title="Confirmar asistencia"
+        subtitle="Elija los servicios y productos que le interesan, reserve un horario y confirme. Recibirá un correo con el detalle de su selección."
+      />
+      <ol className="mt-4 list-decimal pl-5 text-sm text-tinta">
+        <li>Elija los servicios y productos de su interés en el catálogo.</li>
+        <li>Seleccione el horario al que desea asistir.</li>
+        <li>Revise su selección y confirme su asistencia.</li>
+      </ol>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
         <div className="flex flex-col gap-6">
@@ -171,7 +174,12 @@ export function ConfirmarPage() {
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             <SlotSelector slots={slotsQuery.data ?? []} registration={register("slotId")} error={errors.slotId?.message} />
 
-            <Field label="Nombre" htmlFor="nombreCliente" error={errors.nombreCliente?.message}>
+            <Field
+              label="Nombre"
+              htmlFor="nombreCliente"
+              error={errors.nombreCliente?.message}
+              hint="Si desea corregirlo o completarlo, escríbalo aquí; de lo contrario se conserva el nombre de su invitación."
+            >
               <Input
                 type="text"
                 {...register("nombreCliente", { setValueAs: (v: string) => (v === "" ? undefined : v) })}
@@ -180,9 +188,7 @@ export function ConfirmarPage() {
 
             {confirmar.isError ? (
               <StatusMessage id="confirmar-error" tono="error">
-                {confirmar.error instanceof ApiError && confirmar.error.status === 409
-                  ? "Ya existe una confirmación para esta invitación."
-                  : confirmar.error.message}
+                {confirmar.error.message}
               </StatusMessage>
             ) : null}
 
@@ -217,8 +223,9 @@ export function ConfirmarPage() {
               totalCents={preview.productos.totalCents}
               onQuitar={quitarItem}
             />
+            <ExplicacionDescuento config={configQuery.data} />
             <p className="text-xs text-apagado">
-              Preview — el servidor recalcula el total final al confirmar, este valor no es definitivo.
+              Los totales mostrados son una estimación: el total definitivo lo calcula el servidor al confirmar.
             </p>
           </div>
         ) : null}

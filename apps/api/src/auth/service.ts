@@ -19,8 +19,8 @@ export type SesionCliente = {
 
 // HU-2: mensaje genérico en cualquier fallo (email inexistente, código inválido o código
 // expirado) — nunca revela cuál de los tres pasó (no enumeration, ADR-011).
-const CREDENCIALES_INVALIDAS = "Email o código inválido.";
-const DEMASIADOS_INTENTOS = "Demasiados intentos. Probá de nuevo en unos minutos.";
+const CREDENCIALES_INVALIDAS = "El correo electrónico o el código de acceso no son correctos. Verifique los datos e intente de nuevo.";
+const DEMASIADOS_INTENTOS = "Demasiados intentos. Intente de nuevo en unos minutos.";
 
 // ADR-011, párrafo "Vigencia del código" (resolvido con el usuario en Gate 4 tras un
 // contradicción textual dentro del propio ADR): el código vive mientras viva la

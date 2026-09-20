@@ -10,10 +10,12 @@ import {
 } from "@event-promotion/shared-types";
 import { useClienteSession } from "../../auth/context/ClienteSessionContext";
 import { ApiError } from "../../shared/api/client";
-import { formatearCents } from "../../shared/format";
-import { Button, Card, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
+import { formatearFechaLimite } from "../../shared/format";
+import { Button, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
 import { CajaSeleccionados } from "../components/CajaSeleccionados";
 import { CatalogoBuscador } from "../components/CatalogoBuscador";
+import { ExplicacionDescuento } from "../components/ExplicacionDescuento";
+import { ReciboConfirmacion } from "../components/ReciboConfirmacion";
 import { SlotSelector } from "../components/SlotSelector";
 import { useCancelarConfirmacion } from "../api/useCancelarConfirmacion";
 import { useCatalogo } from "../api/useCatalogo";
@@ -61,6 +63,7 @@ export function EditarPage() {
   }, [confirmacionQuery.data, reset]);
 
   const items = watch("items");
+  const slotIdElegido = watch("slotId");
   const catalogo = catalogoQuery.data ?? [];
 
   const seleccionadosIds = useMemo(() => new Set(items.map((item) => item.catalogoItemId)), [items]);
@@ -107,7 +110,11 @@ export function EditarPage() {
   }
 
   function onCancelar() {
-    if (!window.confirm("¿Seguro que querés cancelar tu asistencia? Podés reconfirmar después con tu mismo código.")) {
+    if (
+      !window.confirm(
+        "¿Está seguro de que desea cancelar su asistencia? El horario que tiene reservado quedará liberado. Podrá volver a confirmar más adelante con el mismo correo y código, sujeto a disponibilidad de cupo.",
+      )
+    ) {
       return;
     }
     cancelar.mutate(undefined, { onError: manejarErrorDeSesion });
@@ -148,7 +155,9 @@ export function EditarPage() {
   if (catalogoQuery.isError || slotsQuery.isError || configQuery.isError || confirmacionQuery.isError) {
     return (
       <PageShell variant="centrado">
-        <StatusMessage tono="error">No se pudo cargar tu confirmación. Intentá de nuevo más tarde.</StatusMessage>
+        <StatusMessage tono="error">
+          No se pudo cargar su confirmación. Actualice la página o intente de nuevo en unos minutos.
+        </StatusMessage>
       </PageShell>
     );
   }
@@ -157,7 +166,8 @@ export function EditarPage() {
     return (
       <PageShell variant="centrado" className="text-center">
         <p className="text-tinta">
-          Tu confirmación está cancelada. Volvé a confirmar tu asistencia cuando quieras con tu mismo código.
+          Su confirmación está cancelada. Para asistir a la feria, vuelva a confirmar su asistencia con el mismo correo
+          y código.
         </p>
       </PageShell>
     );
@@ -167,8 +177,8 @@ export function EditarPage() {
     return (
       <PageShell variant="centrado" className="text-center">
         <PageHeader
-          title="Cancelaste tu asistencia"
-          subtitle="Podés reconfirmar cuando quieras con tu mismo código."
+          title="Su asistencia fue cancelada"
+          subtitle="El horario que tenía reservado quedó liberado y recibirá un correo de confirmación. Si cambia de opinión, puede volver a confirmar con el mismo correo y código, mientras haya cupo disponible."
         />
       </PageShell>
     );
@@ -177,32 +187,34 @@ export function EditarPage() {
   if (editar.isSuccess) {
     return (
       <PageShell variant="centrado">
-        <PageHeader title="Cambios guardados" className="text-center" />
-        <Card className="mt-4 text-left text-sm">
-          <p className="flex justify-between text-tinta">
-            <span>Servicios</span>
-            <span className="font-mono tabular-nums">
-              {formatearCents(editar.data.subtotalServiciosCents)} — {editar.data.descuentoServiciosPct}%
-            </span>
-          </p>
-          <p className="mt-1 flex justify-between text-tinta">
-            <span>Productos</span>
-            <span className="font-mono tabular-nums">
-              {formatearCents(editar.data.subtotalProductosCents)} — {editar.data.descuentoProductosPct}%
-            </span>
-          </p>
-          <p className="mt-3 flex justify-between border-t border-borde pt-3 font-semibold text-tinta">
-            <span>Total</span>
-            <span className="font-mono tabular-nums">{formatearCents(editar.data.totalCents)}</span>
-          </p>
-        </Card>
+        <PageHeader
+          title="Sus cambios fueron guardados"
+          subtitle="Este es el detalle vigente de su selección."
+          className="text-center"
+        />
+        <ReciboConfirmacion
+          items={itemsSeleccionados}
+          slot={slotsQuery.data.find((slot) => slot.id === slotIdElegido)}
+          totales={editar.data}
+          editableHastaEn={editar.data.editableHastaEn}
+        />
       </PageShell>
     );
   }
 
   return (
     <PageShell>
-      <PageHeader eyebrow="Feria de Promociones" title="Editar mi confirmación" />
+      <PageHeader
+        eyebrow="Feria de Promociones"
+        title="Editar mi confirmación"
+        subtitle={
+          <>
+            Modifique su selección o su horario y guarde los cambios. Puede hacerlo hasta el{" "}
+            <strong>{formatearFechaLimite(confirmacionQuery.data.editableHastaEn)}</strong>; pasada esa fecha,
+            comuníquese con el departamento de ventas.
+          </>
+        }
+      />
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
         <div className="flex flex-col gap-6">
@@ -221,7 +233,12 @@ export function EditarPage() {
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             <SlotSelector slots={slotsQuery.data ?? []} registration={register("slotId")} error={errors.slotId?.message} />
 
-            <Field label="Nombre" htmlFor="nombreCliente" error={errors.nombreCliente?.message}>
+            <Field
+              label="Nombre"
+              htmlFor="nombreCliente"
+              error={errors.nombreCliente?.message}
+              hint="Se conserva el nombre de su confirmación actual si lo deja sin cambios."
+            >
               <Input
                 type="text"
                 {...register("nombreCliente", { setValueAs: (v: string) => (v === "" ? undefined : v) })}
@@ -245,6 +262,10 @@ export function EditarPage() {
           </form>
 
           <div className="border-t border-borde pt-4">
+            <p className="mb-3 text-sm text-apagado">
+              Si ya no puede asistir, puede cancelar su asistencia: el horario que tiene reservado quedará disponible
+              para otras personas.
+            </p>
             <Button
               type="button"
               variant="danger"
@@ -282,8 +303,9 @@ export function EditarPage() {
               totalCents={preview.productos.totalCents}
               onQuitar={quitarItem}
             />
+            <ExplicacionDescuento config={configQuery.data} />
             <p className="text-xs text-apagado">
-              Preview — el servidor recalcula el total final al guardar, este valor no es definitivo.
+              Los totales mostrados son una estimación: el total definitivo lo calcula el servidor al guardar.
             </p>
           </div>
         ) : null}

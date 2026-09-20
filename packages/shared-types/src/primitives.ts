@@ -4,7 +4,8 @@ import { z } from "zod";
 // una regla como "qué hace válido un email" quede repetida (y potencialmente
 // desincronizada) en cada archivo que la necesita.
 
-export const EmailSchema = z.string().email();
+// El mensaje por defecto de Zod sale en inglés y llega tal cual a la pantalla de login.
+export const EmailSchema = z.string().email("Ingrese un correo electrónico válido");
 export const UuidSchema = z.string().uuid();
 
 // Dinero siempre en centavos enteros, nunca float (ver CLAUDE.md, ADR-005 punto 2).

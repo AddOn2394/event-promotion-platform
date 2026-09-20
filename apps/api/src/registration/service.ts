@@ -5,6 +5,7 @@ import type {
   ConfirmarAsistenciaResponse,
   EditarConfirmacionRequest,
   EditarConfirmacionResponse,
+  TotalesConfirmacion,
 } from "@event-promotion/shared-types";
 import { calcularDescuento } from "@event-promotion/shared-types";
 import type { PoolClient } from "pg";
@@ -12,24 +13,31 @@ import { buscarCatalogoActivoPorIds, leerConfiguracionDescuentoVigente } from ".
 import { pool } from "../db/pool.js";
 import { withTransaction } from "../shared/db-transaction.js";
 import { HttpError } from "../shared/http-error.js";
-import { enviarEmail } from "../shared/mailer.js";
-import { crearNotificacionPendiente, marcarNotificacionEnviada, marcarNotificacionFallida } from "../shared/notificaciones.js";
+import { TELEFONO_VENTAS } from "../shared/contacto.js";
+import { enviarCorreoDeNotificacion } from "../shared/email/envio.js";
+import {
+  emailCancelacion,
+  emailConfirmacion,
+  type DetalleConfirmacion,
+  type VarianteConfirmacion,
+} from "../shared/email/plantillas.js";
+import { crearNotificacionPendiente } from "../shared/notificaciones.js";
 import { esViolacionDeUnicidad } from "../shared/pg-error.js";
 import {
   buscarSlotActivoPorId,
   leerDiasDeadlineEdicion,
   obtenerFechaInicioSlot,
+  obtenerHorarioSlot,
 } from "../slots/service.js";
-import { dentroDeVentanaEdicion } from "./deadline.js";
+import { calcularFechaLimiteEdicion, dentroDeVentanaEdicion } from "./deadline.js";
 
 // Ediciones cerradas: mensaje compartido por HU-4/HU-5/HU-6 (ADR-010) — mismo teléfono
-// ficticio en los 3 endpoints que evalúan la misma ventana de edición.
-const EDICIONES_CERRADAS =
-  "Ediciones no permitidas — comunicate al departamento de ventas al 5555-5555.";
+// en los 3 endpoints que evalúan la misma ventana de edición.
+const EDICIONES_CERRADAS = `Ediciones no permitidas — comuníquese con el departamento de ventas al ${TELEFONO_VENTAS}.`;
 
 type ItemResuelto = { categoria: "servicio" | "producto"; precioCents: number; nombreSnapshot: string; idcatalogo: string };
 
-function resultadoDesdeDescuento(descuento: ReturnType<typeof calcularDescuento>): ConfirmarAsistenciaResponse {
+function resultadoDesdeDescuento(descuento: ReturnType<typeof calcularDescuento>): TotalesConfirmacion {
   return {
     subtotalServiciosCents: descuento.servicios.subtotalCents,
     descuentoServiciosPct: descuento.servicios.descuentoPct,
@@ -73,27 +81,44 @@ async function reemplazarItemsConfirmacion(
   }
 }
 
-function confirmacionEmailHtml(titulo: string, resultado: ConfirmarAsistenciaResponse): string {
-  return `
-    <p>${titulo}</p>
-    <p>Servicios: Q${(resultado.subtotalServiciosCents / 100).toFixed(2)} — descuento ${resultado.descuentoServiciosPct}%</p>
-    <p>Productos: Q${(resultado.subtotalProductosCents / 100).toFixed(2)} — descuento ${resultado.descuentoProductosPct}%</p>
-    <p>Total: Q${(resultado.totalCents / 100).toFixed(2)}</p>
-  `;
+function respuestaDesdeDetalle(detalle: DetalleConfirmacion): ConfirmarAsistenciaResponse {
+  return { ...detalle.totales, editableHastaEn: detalle.editableHasta.toISOString() };
 }
 
-async function enviarNotificacion(
-  emailCliente: string,
-  subject: string,
-  html: string,
-  idnotificacion: string,
-): Promise<void> {
-  const resultadoEnvio = await enviarEmail({ to: emailCliente, subject, html });
-  if (resultadoEnvio.exito) {
-    await marcarNotificacionEnviada(pool, idnotificacion, resultadoEnvio.idMensaje);
-  } else {
-    await marcarNotificacionFallida(pool, idnotificacion);
+async function leerNombreCliente(client: PoolClient, idinvitacion: string): Promise<string | null> {
+  const { rows } = await client.query<{ nombre_cliente: string | null }>(
+    "SELECT nombre_cliente FROM invitaciones WHERE idinvitacion = $1",
+    [idinvitacion],
+  );
+  return rows[0]?.nombre_cliente ?? null;
+}
+
+// Todo lo que el correo (y la pantalla de recibo) necesitan se lee acá, bajo el client de la
+// transacción, y sale por el retorno del callback de withTransaction — nunca se re-consulta
+// con el pool después del COMMIT (ADR-024: el envío ocurre fuera de la transacción, pero sus
+// datos no deben abrir una lectura nueva sin lock). `idslot` es el slot FINAL de la
+// confirmación: ADR-010 evalúa la elegibilidad para editar contra el slot anterior al cambio
+// (validarVentanaEdicion), pero la fecha límite que se le muestra al cliente es la que rige
+// de ahora en adelante, es decir la del slot vigente tras la edición.
+async function reunirDetalleConfirmacion(
+  client: PoolClient,
+  idinvitacion: string,
+  idslot: string,
+  items: ItemResuelto[],
+  totales: TotalesConfirmacion,
+): Promise<DetalleConfirmacion> {
+  const horario = await obtenerHorarioSlot(idslot, client);
+  if (!horario) {
+    throw new Error("El slot de la confirmación no existe — estado inconsistente.");
   }
+  const diasDeadline = await leerDiasDeadlineEdicion(client);
+  return {
+    nombreCliente: await leerNombreCliente(client, idinvitacion),
+    items: items.map((item) => ({ nombre: item.nombreSnapshot, categoria: item.categoria, precioCents: item.precioCents })),
+    slot: horario,
+    totales,
+    editableHasta: calcularFechaLimiteEdicion(horario.fechaHoraInicio, diasDeadline),
+  };
 }
 
 type ConfirmacionExistente = { idconfirmacion: string; estado: "confirmada" | "cancelada"; idslot: string };
@@ -140,9 +165,9 @@ export async function confirmarAsistencia(
 
   let idnotificacion: string;
   let esReconfirmacion = false;
-  let resultado: ConfirmarAsistenciaResponse;
+  let detalle: DetalleConfirmacion;
   try {
-    ({ idnotificacion, esReconfirmacion, resultado } = await withTransaction(pool, async (client) => {
+    ({ idnotificacion, esReconfirmacion, detalle } = await withTransaction(pool, async (client) => {
       if (input.nombreCliente) {
         await client.query("UPDATE invitaciones SET nombre_cliente = $1 WHERE idinvitacion = $2", [
           input.nombreCliente,
@@ -192,7 +217,7 @@ export async function confirmarAsistencia(
         [input.slotId],
       );
       if (cupoTomado.rowCount === 0) {
-        throw new HttpError(400, "Ese horario ya no tiene cupo disponible, elegí otro horario.");
+        throw new HttpError(400, "Ese horario ya no tiene cupo disponible. Elija otro horario.");
       }
 
       let idconfirmacion: string;
@@ -264,7 +289,15 @@ export async function confirmarAsistencia(
         tipo: reconfirmando ? "reconfirmacion" : "confirmacion",
       });
 
-      return { idnotificacion: idnotif, esReconfirmacion: reconfirmando, resultado: resultadoActual };
+      const detalleCorreo = await reunirDetalleConfirmacion(
+        client,
+        idinvitacion,
+        input.slotId,
+        itemsResueltos,
+        resultadoActual,
+      );
+
+      return { idnotificacion: idnotif, esReconfirmacion: reconfirmando, detalle: detalleCorreo };
     }));
   } catch (error) {
     if (esViolacionDeUnicidad(error)) {
@@ -273,19 +306,15 @@ export async function confirmarAsistencia(
     throw error;
   }
 
-  await enviarNotificacion(
-    emailCliente,
-    esReconfirmacion
-      ? "Reconfirmación de asistencia — Feria de Promociones"
-      : "Confirmación de asistencia — Feria de Promociones",
-    confirmacionEmailHtml(
-      esReconfirmacion ? "Volviste a confirmar tu asistencia a la feria de promociones." : "Confirmamos tu asistencia a la feria de promociones.",
-      resultado,
-    ),
+  const variante: VarianteConfirmacion = esReconfirmacion ? "reconfirmacion" : "confirmacion";
+  await enviarCorreoDeNotificacion({
+    to: emailCliente,
+    armarCorreo: () => emailConfirmacion(variante, detalle),
     idnotificacion,
-  );
+    tipo: variante,
+  });
 
-  return resultado;
+  return respuestaDesdeDetalle(detalle);
 }
 
 // HU-4/HU-5: reemplazo completo de la selección y, opcionalmente, del slot. La ventana de
@@ -304,10 +333,10 @@ export async function editarConfirmacion(
     throw new HttpError(404, "No existe una confirmación para editar.");
   }
   if (previo.estado === "cancelada") {
-    throw new HttpError(409, "Tu confirmación está cancelada — reconfirmá con POST /confirmaciones en vez de editar.");
+    throw new HttpError(409, "Su confirmación está cancelada. Para asistir a la feria, vuelva a confirmar su asistencia.");
   }
 
-  const { idnotificacion, resultado } = await withTransaction(pool, async (client) => {
+  const { idnotificacion, detalle } = await withTransaction(pool, async (client) => {
     // Re-lee y bloquea la fila real — el idslot/estado autoritativos son estos, no los de
     // la lectura de arriba.
     const { rows } = await client.query<ConfirmacionExistente>(
@@ -319,7 +348,7 @@ export async function editarConfirmacion(
       throw new HttpError(404, "No existe una confirmación para editar.");
     }
     if (actual.estado === "cancelada") {
-      throw new HttpError(409, "Tu confirmación está cancelada — reconfirmá con POST /confirmaciones en vez de editar.");
+      throw new HttpError(409, "Su confirmación está cancelada. Para asistir a la feria, vuelva a confirmar su asistencia.");
     }
 
     await validarVentanaEdicion(actual.idslot, client);
@@ -368,7 +397,7 @@ export async function editarConfirmacion(
       if (cupoTomado.rowCount === 0) {
         // Rollback completo (withTransaction) — el cliente conserva su slot original, el
         // +1 de arriba nunca se confirma.
-        throw new HttpError(400, "Ese horario ya no tiene cupo disponible, elegí otro horario.");
+        throw new HttpError(400, "Ese horario ya no tiene cupo disponible. Elija otro horario.");
       }
     }
 
@@ -406,17 +435,25 @@ export async function editarConfirmacion(
       tipo: "edicion",
     });
 
-    return { idnotificacion: idnotif, resultado };
+    const detalleCorreo = await reunirDetalleConfirmacion(
+      client,
+      idinvitacion,
+      input.slotId,
+      itemsResueltos,
+      resultado,
+    );
+
+    return { idnotificacion: idnotif, detalle: detalleCorreo };
   });
 
-  await enviarNotificacion(
-    emailCliente,
-    "Cambios en tu asistencia — Feria de Promociones",
-    confirmacionEmailHtml("Actualizamos tu selección para la feria de promociones.", resultado),
+  await enviarCorreoDeNotificacion({
+    to: emailCliente,
+    armarCorreo: () => emailConfirmacion("edicion", detalle),
     idnotificacion,
-  );
+    tipo: "edicion",
+  });
 
-  return resultado;
+  return respuestaDesdeDetalle(detalle);
 }
 
 // HU-6: libera el cupo del slot y marca la confirmación como cancelada sin borrar la fila
@@ -432,10 +469,10 @@ export async function cancelarConfirmacion(
     throw new HttpError(404, "No existe una confirmación para cancelar.");
   }
   if (previo.estado === "cancelada") {
-    throw new HttpError(409, "Tu confirmación ya está cancelada.");
+    throw new HttpError(409, "Su confirmación ya está cancelada.");
   }
 
-  const idnotificacion = await withTransaction(pool, async (client) => {
+  const { idnotificacion, nombreCliente } = await withTransaction(pool, async (client) => {
     const { rows } = await client.query<ConfirmacionExistente>(
       "SELECT idconfirmacion, idslot, estado FROM confirmaciones WHERE idinvitacion = $1 FOR UPDATE",
       [idinvitacion],
@@ -445,7 +482,7 @@ export async function cancelarConfirmacion(
       throw new HttpError(404, "No existe una confirmación para cancelar.");
     }
     if (actual.estado === "cancelada") {
-      throw new HttpError(409, "Tu confirmación ya está cancelada.");
+      throw new HttpError(409, "Su confirmación ya está cancelada.");
     }
 
     await validarVentanaEdicion(actual.idslot, client);
@@ -456,19 +493,20 @@ export async function cancelarConfirmacion(
     await client.query("UPDATE confirmaciones SET estado = 'cancelada', actualizada_en = now() WHERE idconfirmacion = $1", [
       actual.idconfirmacion,
     ]);
-    return crearNotificacionPendiente(client, {
+    const idnotif = await crearNotificacionPendiente(client, {
       idinvitacion,
       idconfirmacion: actual.idconfirmacion,
       tipo: "cancelacion",
     });
+    return { idnotificacion: idnotif, nombreCliente: await leerNombreCliente(client, idinvitacion) };
   });
 
-  await enviarNotificacion(
-    emailCliente,
-    "Cancelación de asistencia — Feria de Promociones",
-    "<p>Confirmamos que cancelaste tu asistencia a la feria de promociones. Podés reconfirmar cuando quieras con tu mismo código.</p>",
+  await enviarCorreoDeNotificacion({
+    to: emailCliente,
+    armarCorreo: () => emailCancelacion({ nombreCliente }),
     idnotificacion,
-  );
+    tipo: "cancelacion",
+  });
 
   return { estado: "cancelada" };
 }
@@ -509,6 +547,16 @@ export async function obtenerConfirmacionPropia(idinvitacion: string): Promise<C
     [confirmacion.idconfirmacion],
   );
 
+  // Lectura de solo presentación (la pantalla muestra la fecha límite); la decisión real de
+  // permitir o rechazar una edición sigue siendo validarVentanaEdicion, bajo lock (ADR-010).
+  const [fechaInicioSlot, diasDeadline] = await Promise.all([
+    obtenerFechaInicioSlot(confirmacion.idslot),
+    leerDiasDeadlineEdicion(),
+  ]);
+  if (!fechaInicioSlot) {
+    throw new Error("El slot de la confirmación no existe — estado inconsistente.");
+  }
+
   return {
     estado: confirmacion.estado,
     slotId: confirmacion.idslot,
@@ -524,5 +572,6 @@ export async function obtenerConfirmacionPropia(idinvitacion: string): Promise<C
     subtotalProductosCents: confirmacion.subtotal_productos_cents,
     descuentoProductosPct: confirmacion.descuento_productos_pct,
     totalCents: confirmacion.total_cents,
+    editableHastaEn: calcularFechaLimiteEdicion(fechaInicioSlot, diasDeadline).toISOString(),
   };
 }

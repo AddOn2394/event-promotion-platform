@@ -6,10 +6,10 @@ import { renderWithProviders } from "../../test-support/renderWithProviders";
 afterEach(cleanup);
 
 describe("LoginPage — prellenado desde el link de invitación (formato /login?email=...)", () => {
-  it("prellena el email desde el query param", () => {
+  it("prellena el correo electrónico desde el query param", () => {
     renderWithProviders(<LoginPage />, { initialEntries: ["/login?email=cliente@example.com"] });
 
-    expect((screen.getByLabelText(/email/i) as HTMLInputElement).value).toBe("cliente@example.com");
+    expect((screen.getByLabelText(/correo electrónico/i) as HTMLInputElement).value).toBe("cliente@example.com");
   });
 
   it("rechaza un código que no tiene exactamente 6 dígitos", async () => {

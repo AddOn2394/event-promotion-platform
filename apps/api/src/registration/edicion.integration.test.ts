@@ -209,6 +209,16 @@ describe("registration — PATCH /confirmaciones/mia, cancelar y reconfirmar (HU
     const destinoRow = rows.find((r) => r.idslot === slotDestino);
     expect(origenRow?.cupos_disponibles).toBe(5);
     expect(destinoRow?.cupos_disponibles).toBe(4);
+
+    // ADR-010: la elegibilidad para editar se evaluó contra el slot ORIGEN, pero la fecha
+    // límite que se le muestra al cliente es la del slot vigente tras el cambio (destino) —
+    // este assert fija esa decisión para que nadie la "corrija" hacia el slot previo.
+    const { rows: limite } = await pool.query<{ limite: Date }>(
+      `SELECT s.fecha_hora_inicio - (c.dias_deadline_edicion * interval '1 day') AS limite
+       FROM slots s, configuracion_evento c WHERE s.idslot = $1`,
+      [slotDestino],
+    );
+    expect(res.body.editableHastaEn).toBe(limite[0]?.limite.toISOString());
   });
 
   it("HU-5: rechaza el cambio si el slot destino está lleno — el cliente conserva su slot original intacto", async () => {

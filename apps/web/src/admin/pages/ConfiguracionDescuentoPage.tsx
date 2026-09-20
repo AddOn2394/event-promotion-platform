@@ -51,7 +51,7 @@ export function ConfiguracionDescuentoPage() {
           subtitle="Los porcentajes (3%/5%) son fijos en código — acá solo se editan los umbrales que los disparan (ADR-023)."
         />
 
-        {configQuery.isLoading ? <p className="text-sm text-apagado">Cargando…</p> : null}
+        {configQuery.isLoading ? <StatusMessage tono="carga">Cargando…</StatusMessage> : null}
         {configQuery.data ? (
           <form onSubmit={onSubmit} noValidate className="flex max-w-sm flex-col gap-4">
             <Field label="Mínimo de servicios para 3%" htmlFor="minServicios3pct" error={errors.minServicios3pct?.message}>

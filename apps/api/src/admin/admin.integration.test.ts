@@ -196,6 +196,38 @@ describe("admin — listar invitaciones y reenviar código (HU-11), integración
     expect(invitacion.estado).toBe("sin_respuesta");
   });
 
+  // ADR-030: 'fallido' (el correo nunca salió) es un estado propio, "fallida". Se siembra por
+  // SQL, igual que el fixture de 'rebotado' — el mailer de test simula éxito (NODE_ENV=test),
+  // así que ningún envío real de la suite produce 'fallido'.
+  it("un envío 'fallido' se lista como fallida, no como sin_respuesta (ADR-030)", async () => {
+    const idinvitacion = await crearInvitacionDePrueba();
+    await pool.query(
+      "INSERT INTO notificaciones (idinvitacion, tipo, estado_envio) VALUES ($1, 'invitacion', 'fallido')",
+      [idinvitacion],
+    );
+    const agent = await loginAdminAgent();
+    const res = await agent.get("/admin/invitaciones");
+    const invitacion = res.body.find((i: { email: string }) => i.email === EMAIL);
+    expect(invitacion.estado).toBe("fallida");
+  });
+
+  it("un reenvío exitoso limpia 'fallida': el estado sale de la notificación de invitación más reciente (ADR-030)", async () => {
+    const idinvitacion = await crearInvitacionDePrueba();
+    await pool.query(
+      "INSERT INTO notificaciones (idinvitacion, tipo, estado_envio) VALUES ($1, 'invitacion', 'fallido')",
+      [idinvitacion],
+    );
+    const agent = await loginAdminAgent();
+    const antes = await agent.get("/admin/invitaciones");
+    expect(antes.body.find((i: { email: string }) => i.email === EMAIL).estado).toBe("fallida");
+
+    const reenvio = await agent.post(`/admin/invitaciones/${idinvitacion}/reenviar`);
+    expect(reenvio.status).toBe(200);
+
+    const despues = await agent.get("/admin/invitaciones");
+    expect(despues.body.find((i: { email: string }) => i.email === EMAIL).estado).toBe("sin_respuesta");
+  });
+
   it("reenviar invalida el código anterior para un login nuevo, pero un JWT ya emitido sigue funcionando", async () => {
     const idinvitacion = await crearInvitacionDePrueba();
 
@@ -275,7 +307,7 @@ describe("admin — listar y exportar confirmaciones (HU-8), integración contra
     return cookie;
   }
 
-  it("distingue confirmada / cancelada / sin_respuesta / rebotada sin agruparlas", async () => {
+  it("distingue confirmada / cancelada / sin_respuesta / rebotada / fallida sin agruparlas", async () => {
     // confirmada
     const cookieConfirmada = await loginClienteDePrueba("confirmada@example.com", "111111");
     await request(app)
@@ -307,6 +339,22 @@ describe("admin — listar y exportar confirmaciones (HU-8), integración contra
       [rebotadaRows[0]?.idinvitacion],
     );
 
+    // fallida: invitación con notificación tipo=invitacion en estado_envio='fallido' (ADR-030)
+    const { rows: fallidaRows } = await pool.query<{ idinvitacion: string }>(
+      "INSERT INTO invitaciones (email, codigo_acceso_hash) VALUES ($1, $2) RETURNING idinvitacion",
+      ["fallida@example.com", await bcrypt.hash("555555", 10)],
+    );
+    await pool.query(
+      "INSERT INTO notificaciones (idinvitacion, tipo, estado_envio) VALUES ($1, 'invitacion', 'fallido')",
+      [fallidaRows[0]?.idinvitacion],
+    );
+
+    // Con confirmación, gana el estado de la confirmación aunque el envío de la invitación
+    // haya fallado (ADR-030): si el cliente confirmó, el correo le llegó por algún medio.
+    await pool.query(
+      "INSERT INTO notificaciones (idinvitacion, tipo, estado_envio) SELECT idinvitacion, 'invitacion', 'fallido' FROM invitaciones WHERE email = 'confirmada@example.com'",
+    );
+
     const agent = await loginAdminAgent();
     const res = await agent.get("/admin/confirmaciones");
     expect(res.status).toBe(200);
@@ -316,6 +364,7 @@ describe("admin — listar y exportar confirmaciones (HU-8), integración contra
     expect(porEmail.get("cancelada@example.com")).toBe("cancelada");
     expect(porEmail.get("sinrespuesta@example.com")).toBe("sin_respuesta");
     expect(porEmail.get("rebotada@example.com")).toBe("rebotada");
+    expect(porEmail.get("fallida@example.com")).toBe("fallida");
   });
 
   it("filtra por ?estado=", async () => {

@@ -1,54 +1,52 @@
-# Gate 7 — Estilos visuales (Tailwind minimalista)
+# Gate 8 — Formato numérico, comunicación profesional y estado "Fallida"
 
-Plan completo: `C:\Users\jose_\.claude\plans\ancient-twirling-swan.md` (también reconstruible desde `spec/PLAN_DESARROLLO.md` Gate 7 + `spec/todo.md`).
+Plan completo: `C:\Users\jose_\.claude\plans\jaunty-meandering-kernighan.md`. Gate 7 (cerrado 2026-09-19) está documentado en `spec/todo.md`.
 
-Decisiones confirmadas con el líder: paleta "neutralizar, papel cálido queda"; verificación visual la hace el líder (no hay Chrome conectado); libertad para reorganizar layout.
+Decisiones del líder: tratamiento **usted**; formateador en `shared-types` + ADR-031; "Fallida" solo para `fallido` (pendiente sigue en "Sin respuesta", la confirmación gana); teléfono placeholder centralizado; observabilidad = solo log; guard `NODE_ENV=test` en el mailer; los 3 hallazgos de Gate 7 entran.
 
-## Fase 1 — Tokens (`apps/web/src/index.css`)
-- [x] Ajustar `tinta`, `apagado`, `borde`, `borde-fuerte` a neutros (papel/superficie/jade/alerta sin cambio)
-- [x] Calcular luminancia relativa de los 7 pares de contraste y anotar ratios (script en scratchpad, todos PASS)
-- [x] **Parada 1**: entorno ya estaba levantado (postgres/api/web); avisado al líder
+Orden no negociable: guard de `NODE_ENV` (bloque 2) **antes** del cambio de enum (bloque 4).
 
-## Fase 2 — `shared/ui` existentes
-- [x] `Card.tsx` — rediseñado (`border-t` + `p-5`, sin caja completa) y adoptado en `CajaSeleccionados`, `ConfirmarPage`, `EditarPage`. Polimórfico (`as`) para preservar `<section>`/`role="region"` en `CajaSeleccionados`
-- [x] `Button.tsx` — tamaño `sm`/`md` + variantes `accent`/`link`; absorbió `CatalogoBuscador.tsx:76-82` (nombre accesible condicional preservado) y `CajaSeleccionados.tsx:46-52`
-- [x] `Input.tsx` / `Select.tsx` — sin cambios de clase; el aligerado sale del token `borde-fuerte` (Fase 1)
-- [x] `Table.tsx` — nuevos `TableHeaderRow`/`TableHeaderCell`/`TableRow`/`TableCell` absorben el `<thead>`/`<tbody>` repetido en las 4 páginas de admin
-- [x] `Field.tsx` — reusa `StatusMessage` para el error, reenviando `id={errorId}` que el `cloneElement` necesita
+## Bloque 1 — Separador de miles
+- [ ] `packages/shared-types/src/money.ts` + `money.test.ts` (fronteras ADR-005 + agrupación + precondición entero)
+- [ ] `index.ts` exporta `money`; `npm run build -w packages/shared-types`
+- [ ] Eliminar `apps/web/src/shared/format.ts`; migrar los 6 consumidores
+- [ ] `centsAQuetzales` (CSV) intacto + comentario del porqué
+- [ ] ADR-031 en `spec/DECISIONES_ARQUITECTURA.md`
+- [ ] build + tests
 
-## Fase 3 — `shared/ui` nuevos
-- [x] `PageShell` (variant `ancho`/`centrado` — solo 2 anchos, no 3: el shell "cliente" y el "admin" se unificaron en uno). **Cambio visible a señalar al líder**: `ConfirmarPage`/`EditarPage` pasan de `max-w-4xl` a `max-w-5xl` (más ancho) — antes esa bifurcación no respondía a ninguna razón de diseño, ahora es un solo valor
-- [x] `PageHeader` (eyebrow + título + subtítulo)
-- [x] `StatusMessage` — reenvía `id` vía `{...props}`; los 5 `aria-describedby` verificados con grep tras el swap
-- [x] `AdminNav.tsx` → `NavLink` con estado activo
-- [x] Tracking arbitrario: `CajaSeleccionados` h2 (`0.15em`) y `CatalogoBuscador` h3 (`0.1em`) unificados a `tracking-widest` (stock, 0.1em) — eran literalmente el mismo patrón (label pequeño de sección) con dos valores distintos. El eyebrow (`0.2em`, rol de "kicker" de marca, ahora centralizado en `PageHeader`) y el `tracking-wide` de encabezados de tabla (rol de grilla de datos densa) quedan deliberadamente distintos — son roles visuales distintos, no la misma duplicación. El código de 6 dígitos (`0.3em`) no forma parte de este grupo, es legibilidad de un OTP.
+## Bloque 2 — Correos
+- [ ] `mailer.ts`: `text`, remitente legible, guard `NODE_ENV=test`
+- [ ] `shared/contacto.ts` (`TELEFONO_VENTAS`) + `EDICIONES_CERRADAS` a usted
+- [ ] `shared/email/html.ts` (`escaparHtml`), `documento.ts` (bloques + 2 renderers), `plantillas.ts`
+- [ ] `plantillas.test.ts` (escape incl. atributo, código solo en invitación, montos, contenido)
+- [ ] Ampliar retorno de `withTransaction` en confirmar/editar/cancelar (ítems, slot, deadline, nombre)
+- [ ] Cablear los 6 call sites
+- [ ] build + tests
 
-## Fase 4 — Pantallas (9 rutas + 3 componentes)
-- [x] Cliente: `LoginPage`, `ConfirmarPage`, `EditarPage` (4-5 ramas de estado c/u — sin anidar `<main>`, son returns mutuamente excluyentes)
-- [x] Admin: `AdminLoginPage`, `InvitacionesPage`, `ConfirmacionesPage`, `CatalogoAdminPage`, `SlotsAdminPage`, `ConfiguracionDescuentoPage`
-- [x] `CatalogoBuscador`, `CajaSeleccionados` (`SlotSelector` sin cambios — ya estaba limpio)
-- [ ] Bloque de totales del recibo — NO promovido (queda duplicado en `ConfirmarPage`/`EditarPage`); se evaluó y no salía limpio sin tocar más lógica de lo necesario para un gate visual
+## Bloque 3 — Pantallas del cliente
+- [ ] `editableHastaEn` en `ConfirmarAsistenciaResponse` y `ConfirmacionPropiaResponse`; regenerar OpenAPI
+- [ ] Mensajes de error del servidor a usted (`registration/service.ts`)
+- [ ] `LoginPage`, `ConfirmarPage`, `EditarPage` + `CatalogoBuscador`, `CajaSeleccionados`, `SlotSelector`
+- [ ] Hallazgos Gate 7: estado vacío en tablas admin, `role="status"` en cargas inline, 3 `<label>` → `<Field>`
+- [ ] Actualizar tests web acoplados a texto (a propósito)
+- [ ] build + tests
 
-## Cambios visibles a señalar explícitamente en la Parada 2
-- `ConfirmarPage`/`EditarPage` pasan de `max-w-4xl` a `max-w-5xl` (unificación del ancho, ver Fase 3)
-- Los 2 banners de error a pantalla completa (`ConfirmarPage`/`EditarPage` cuando falla la carga) pasan a `text-sm` — antes tamaño default; ahora empatan con el resto de banners de la app vía `StatusMessage`. Deliberado, no bug.
-- `Card` (panel del recibo y de la caja de selección) perdió el borde punteado y ganó fondo `superficie` más plano — el borde completo se mantuvo (no solo `border-t`) porque `papel` vs `superficie` da 1.06:1, casi invisible; sin borde en las 4 caras las 2 cajas apiladas en `ConfirmarPage` se hubieran visto como una sola columna blanca continua
+## Bloque 4 — "Fallida"
+- [ ] ADR-030 + nota en ADR-024 + `SPEC_FUNCIONAL.md` HU-8 (4 → 5 estados)
+- [ ] `admin.ts` enum, `calcularEstadoInvitacion`, etiquetas/filtro web, `InvitacionesPage` tipado
+- [ ] Regenerar OpenAPI
+- [ ] Tests: 5 estados (fixture SQL explícito) + reenvío exitoso limpia "Fallida"
+- [ ] build + tests
 
-## No tocar en este gate (reportar aparte)
-- Labels hand-rolled (`CatalogoBuscador.tsx:34`, `ConfirmacionesPage.tsx:45`, `CatalogoAdminPage.tsx:58`) — no convertir a `<Field>`
-- Estados de carga inline sin `role="status"`
-- Tablas de admin sin estado vacío
+## Bloque 5 — Observabilidad
+- [ ] Helper único de envío + marcado + log estructurado; reemplaza los 6 `if/else`
+- [ ] build + tests
 
 ## Cierre
-- [x] `npm run test` — 88 (api) + 12 (web) + 20 (shared-types) = 120/120 verde
-- [x] `npm run build` limpio en los 3 workspaces
-- [x] `/code-review` (acotado a los 21 archivos de Gate 7) — 0 hallazgos
-- [x] `advisor` — 2 pases, encontró y se corrigió el borde de `Card` y el disabled de `Button variant="link"`
-- [x] Walkthrough en `spec/todo.md`
-- [x] `spec/ESTADO_PLAN.md` — G7 queda ABIERTO pendiente de visto bueno visual
-- [x] Parada 2: el líder verificó las pantallas y dio el visto bueno (2026-09-19) — Gate 7 CERRADO
-- [ ] Confirmar con el líder si hay issues/milestone de GitHub para G7/G8 (arrastrado al próximo prompt)
-- [x] No commitear — árbol listo, decirlo explícitamente en el handoff
-
-## Siguiente
-Gate 8 — ver `spec/next-session-prompt.md` y `spec/PLAN_DESARROLLO.md` v1.5.
+- [ ] `npm run test` verde en 3 workspaces + `npm run build` limpio
+- [ ] `/code-review` (medium)
+- [ ] `advisor` pase de cierre
+- [ ] `api-contract-documenter`
+- [ ] Walkthrough en `spec/todo.md`, `spec/ESTADO_PLAN.md`, `tasks/lessons.md` si aplica
+- [ ] `DATABASE_URL` de dev en `.env.example` y README si falta
+- [ ] Sin commit — árbol listo

@@ -4,6 +4,7 @@ export * from "./catalogo.js";
 export * from "./slots.js";
 export * from "./descuento.js";
 export * from "./discount-engine.js";
+export * from "./money.js";
 export * from "./admin.js";
 export * from "./auth.js";
 export * from "./configuracion.js";

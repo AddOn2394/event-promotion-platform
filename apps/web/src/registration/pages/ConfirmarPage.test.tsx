@@ -31,7 +31,14 @@ describe("ConfirmarPage — nombreCliente vacío no debe romper el submit (bug d
       if (url.includes("/configuracion-descuento")) return jsonResponse(CONFIG);
       if (url.includes("/confirmaciones")) {
         return jsonResponse(
-          { subtotalServiciosCents: 10000, descuentoServiciosPct: 0, subtotalProductosCents: 0, descuentoProductosPct: 0, totalCents: 10000 },
+          {
+            subtotalServiciosCents: 10000,
+            descuentoServiciosPct: 0,
+            subtotalProductosCents: 0,
+            descuentoProductosPct: 0,
+            totalCents: 10000,
+            editableHastaEn: "2099-01-01T10:00:00.000Z",
+          },
           201,
         );
       }
@@ -46,8 +53,14 @@ describe("ConfirmarPage — nombreCliente vacío no debe romper el submit (bug d
     fireEvent.change(screen.getByLabelText(/horario/i), { target: { value: SLOT.id } });
     fireEvent.click(screen.getByRole("button", { name: /confirmar asistencia/i }));
 
-    await screen.findByText(/confirmación registrada/i);
+    await screen.findByRole("heading", { name: /su asistencia está confirmada/i });
     expect(screen.queryByText(/al menos 1 carácter|string must contain/i)).toBeNull();
+
+    // Recibo: ítems elegidos, total formateado y fecha límite de edición (ADR-010).
+    expect(screen.getByText("Servicio de prueba")).toBeTruthy();
+    expect(screen.getByText(/total con descuento/i)).toBeTruthy();
+    expect(screen.getByText(/total con descuento/i).parentElement?.textContent).toContain("Q100.00");
+    expect(screen.getByText(/puede modificar o cancelar su selección hasta el/i)).toBeTruthy();
 
     const confirmCall = fetchSpy.mock.calls.find(([input]) =>
       (typeof input === "string" ? input : (input as Request).url).includes("/confirmaciones"),

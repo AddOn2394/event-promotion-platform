@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import type { CatalogoItem } from "@event-promotion/shared-types";
-import { formatearCents } from "../../shared/format";
-import { Button, Input } from "../../shared/ui";
+import { formatearCents, type CatalogoItem } from "@event-promotion/shared-types";
+import { Button, Field, Input } from "../../shared/ui";
 
 type Props = {
   catalogo: CatalogoItem[];
@@ -26,23 +25,24 @@ export function CatalogoBuscador({ catalogo, seleccionadosIds, onAgregar, descri
 
   return (
     <section aria-labelledby="buscador-catalogo" aria-describedby={describedBy} className="flex flex-col gap-4">
-      <h2 id="buscador-catalogo" className="font-display text-lg font-bold text-tinta">
-        Catálogo
-      </h2>
-
       <div>
-        <label htmlFor="busqueda-catalogo" className="text-sm font-medium text-tinta">
-          Buscar
-        </label>
+        <h2 id="buscador-catalogo" className="font-display text-lg font-bold text-tinta">
+          Catálogo de servicios y productos
+        </h2>
+        <p className="mt-1 text-sm text-apagado">
+          Presione «Agregar» junto a cada servicio o producto que le interese. Puede quitarlo después desde el cuadro
+          de su selección.
+        </p>
+      </div>
+
+      <Field label="Buscar" htmlFor="busqueda-catalogo" hint="Escriba el nombre de un servicio o producto para filtrar la lista.">
         <Input
-          id="busqueda-catalogo"
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre…"
-          className="mt-1.5"
         />
-      </div>
+      </Field>
 
       <ListaCatalogo titulo="Servicios" items={resultados.servicios} seleccionadosIds={seleccionadosIds} onAgregar={onAgregar} />
       <ListaCatalogo titulo="Productos" items={resultados.productos} seleccionadosIds={seleccionadosIds} onAgregar={onAgregar} />
@@ -64,6 +64,7 @@ function ListaCatalogo({
   return (
     <div>
       <h3 className="text-xs font-semibold uppercase tracking-widest text-apagado">{titulo}</h3>
+      {items.length === 0 ? <p className="mt-2 text-sm text-apagado">Sin resultados en esta categoría.</p> : null}
       <ul className="mt-2 flex flex-col gap-2">
         {items.map((item) => (
           <li

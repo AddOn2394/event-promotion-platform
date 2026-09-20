@@ -439,3 +439,38 @@ Todos pasan con margen. Dos ratios sub-umbral **aceptados a propósito, no por d
 **Gate 8 agregado al plan** (`spec/PLAN_DESARROLLO.md` v1.5) a pedido del líder: separador de miles en montos, correos y pantallas de cliente más explicativos/profesionales, estado "Fallida", y una ronda final de `/code-review` + `advisor`. Nada de Gate 8 está implementado. Ver `spec/next-session-prompt.md`.
 
 **Pendiente explícito, arrastrado**: nada de Gate 2-8 desplegado en Render; dominio propio en Resend sin verificar; los dos juicios de negocio de Gate 5 sin resolver; sin milestone/issues de GitHub para G7 ni G8; el árbol de trabajo sigue con Gate 6 (staged) + Gate 7 (sin stage) sin commitear.
+
+---
+
+## 2026-09-19 (Gate 8 — Formato numérico, comunicación profesional y estado "Fallida": implementado, cierre pendiente de /code-review high y de la verificación visual del líder)
+
+**Estado del árbol al empezar**: limpio — el líder ya había commiteado Gates 6+7 (`e529790`, cuyo mensaje dice "Gate 8" pero el contenido es Gate 7 + specs). El diff de Gate 8 es exactamente lo sin commitear.
+
+**Decisiones ratificadas con el líder** (plan mode, antes de tocar código): tratamiento **usted**; formateador en `shared-types` con **ADR-031** (ADR-025 hablaba de lógica de negocio, un formateador es presentación → se ratifica, no se estira en silencio); "Fallida" solo para `fallido` (**ADR-030**: `pendiente` sigue en "Sin respuesta", la confirmación gana sobre el estado de envío); teléfono de ventas sigue como placeholder `5555-5555`, centralizado en `apps/api/src/shared/contacto.ts`; observabilidad = solo log; guard `NODE_ENV=test` en el mailer; los 3 hallazgos de Gate 7 entran.
+
+**Bloque 1 — montos**: `formatearCents` (`packages/shared-types/src/money.ts`) → `Q1,500.00`, sin `Intl`, lanza `RangeError` ante no-enteros. Fronteras de ADR-005 en `money.test.ts`. `apps/web/src/shared/format.ts` ahora solo tiene formateo de fechas. CSV (`centsAQuetzales`) intacto, con comentario del porqué.
+
+**Bloque 2 — correos**: modelo de bloques (`shared/email/documento.ts`) con dos renderers (HTML de tablas+estilos en línea, y texto plano); `escaparHtml` es el único punto de escape (falsificado: anulándolo fallan los 4 tests de seguridad). Plantillas `emailInvitacion`/`emailConfirmacion`/`emailCancelacion`: el código de acceso **solo** existe como parámetro de la invitación. Ítems, slot y deadline salen del retorno del callback de `withTransaction`, nunca de una re-consulta post-COMMIT. Fechas fijas en `America/Guatemala`. `mailer.ts`: `text`, remitente "Feria de Promociones <…>", y corte `NODE_ENV=test` (éxito simulado).
+
+**Bloque 3 — pantallas**: copy a usted (incluidos los mensajes de error del servidor); `ReciboConfirmacion` (reemplaza el recibo duplicado de Confirmar/Editar) y `ExplicacionDescuento` (umbrales reales de `useConfiguracionDescuento`). Contrato: `editableHastaEn` en `ConfirmarAsistenciaResponse` y `ConfirmacionPropiaResponse`. `EmailSchema` tenía mensaje de Zod en inglés que llegaba a la pantalla de login. `Field` ahora asocia el `hint` con `aria-describedby` (lo pidió el advisor: Gate 8 agregó ~6 hints que un lector de pantalla no habría anunciado). Hallazgos de Gate 7: estados vacíos (`StatusMessage tono="vacio"`), `role="status"` en cargas inline, 3 `<label>` → `<Field>`.
+
+**Bloque 4 — "Fallida"**: ADR-030, nota en ADR-024, HU-8 a 5 estados; enum, `calcularEstadoInvitacion`, etiquetas/filtro, `InvitacionesPage` ahora tipado `Record<EstadoInvitacionAdmin, string>`. Tests: 5 estados, precedencia de la confirmación, y un reenvío exitoso limpia "Fallida" (**falsificado**: con `NODE_ENV=production` el test falla). Orden respetado: el guard de `NODE_ENV` precedió al cambio de enum — sin él, todo envío de test caía en `fallido` y volteaba los tests de `sin_respuesta`.
+
+**Bloque 5 — observabilidad**: `enviarCorreoDeNotificacion` (`shared/email/envio.ts`) reemplaza los 6 `if/else` de envío+marcado y registra `{tipo, idnotificacion, motivo}` con `console.error`.
+
+**Advisor**: pase de orientación (encontró: mensajes de error de `apps/api` también son texto de cara al cliente; verificar `confirmaciones.contract.test.ts`; el guard es prerrequisito del bloque 4) y pase de cierre (encontró: el primer `/code-review` fue superficial, `editableHastaEn` tras cambio de slot sin test, `hint` sin `aria-describedby`, constante de rate limit admin sin actualizar). Todo corregido.
+
+**Verificación**:
+- `npm run build` limpio en los 3 workspaces.
+- `npm run test`: **111** (api) + **19** (web) + **34** (shared-types) = **164** verde.
+- `api-contract-documenter`: sin drift; regenerar `openapi.json` deja el archivo **byte a byte idéntico**.
+- `/code-review medium` → 0 hallazgos, pero fue superficial (no lanzó buscadores ni verificadores); se repitió en `high`, que sí corrió completo y dio **5 hallazgos**:
+  1. *Render de correo tras el COMMIT sin try/catch* (corregido): una excepción al armar la plantilla daba 500 sobre una escritura comprometida y dejaba la notificación en `pendiente`. `enviarCorreoDeNotificacion` ahora recibe `armarCorreo: () => …`, lo envuelve y marca `fallida` con el motivo en el log. Test en `envio.test.ts`. Efecto colateral: un `FRONTEND_URL` faltante al invitar ya no da 500 con la invitación creada, sino una invitación "Fallida" con motivo en el log.
+  2. *Zona horaria web vs correo* (corregido): `apps/web/src/shared/format.ts` ahora fija `America/Guatemala`, igual que los correos.
+  3. *Fecha límite ya vencida tras cambiar a un slot cercano* (corregido el texto): correo y recibo dicen "el plazo ya venció, comuníquese con ventas" en vez de prometer edición hasta una fecha pasada. **Decisión del líder (2026-09-19): dejarlo como está** — ADR-010 sigue evaluando contra el slot anterior y el servidor acepta el cambio; el aviso veraz en correo y recibo es la mitigación. No se rechaza ni se advierte antes de guardar.
+  4. `GET /confirmaciones/mia` con dos lecturas en serie (corregido: `Promise.all`).
+  5. *Guard `NODE_ENV=test` en código de producción* (aceptado, ratificado por el líder): riesgo si algún despliegue fijara `NODE_ENV=test`; el Dockerfile fija `production`.
+
+**Fuera de alcance / pendiente explícito**: teléfono de ventas ficticio; dominio en Resend sin verificar (con `onboarding@resend.dev` solo llega a la cuenta de Resend); nada de Gate 2-8 desplegado en Render; los dos juicios de negocio de Gate 5; sin milestone/issues de GitHub para G7/G8; `/code-review ultra` (Gates 6-8) lo lanza el líder si lo quiere. **No se hizo commit.**
+
+**Verificación visual (la hace el líder)**: `/login`, `/confirmar` (recibo + explicación del descuento + pasos), `/editar` (fecha límite, recibo, cancelar), `/admin/invitaciones`, `/admin/confirmaciones` (filtro con "Fallida", estados vacíos). Correos: invitar/reenviar, confirmar, editar y cancelar, y mirar la bandeja de la cuenta de Resend (asunto, remitente, tabla en Outlook si se puede, texto plano).

@@ -61,6 +61,21 @@ export async function obtenerFechaInicioSlot(idslot: string, db: Queryable = poo
   return rows[0]?.fecha_hora_inicio ?? null;
 }
 
+// Horario de un slot para mostrarlo al cliente en el correo/recibo: sin filtrar por activo,
+// por la misma razón que obtenerFechaInicioSlot (un slot soft-deleteado después de asignado
+// sigue siendo el horario real de una confirmación ya hecha).
+export async function obtenerHorarioSlot(
+  idslot: string,
+  db: Queryable = pool,
+): Promise<{ fechaHoraInicio: Date; fechaHoraFin: Date } | null> {
+  const { rows } = await db.query<{ fecha_hora_inicio: Date; fecha_hora_fin: Date }>(
+    "SELECT fecha_hora_inicio, fecha_hora_fin FROM slots WHERE idslot = $1",
+    [idslot],
+  );
+  const row = rows[0];
+  return row ? { fechaHoraInicio: row.fecha_hora_inicio, fechaHoraFin: row.fecha_hora_fin } : null;
+}
+
 // ADR-010: N días de deadline, configurable desde admin (Gate 5) — sin UI todavía, se lee
 // de la misma forma que configuracion_descuento (ADR-023, catalog/service.ts).
 export async function leerDiasDeadlineEdicion(db: Queryable = pool): Promise<number> {

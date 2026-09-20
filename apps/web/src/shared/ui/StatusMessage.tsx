@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 
-type Tono = "error" | "exito" | "carga";
+type Tono = "error" | "exito" | "carga" | "vacio";
 
 type Props = HTMLAttributes<HTMLParagraphElement> & {
   tono: Tono;
@@ -10,6 +10,7 @@ const TONOS: Record<Tono, { role: "alert" | "status"; color: string }> = {
   error: { role: "alert", color: "text-alerta" },
   exito: { role: "status", color: "text-jade" },
   carga: { role: "status", color: "text-apagado" },
+  vacio: { role: "status", color: "text-apagado" },
 };
 
 // El `id` se reenvía sin tocar (via {...props}) porque varios sitios lo usan como target

@@ -13,11 +13,13 @@ type Props = {
 // wrapper — cloneElement los inyecta una sola vez acá en vez de repetirlos en cada pantalla.
 export function Field({ label, htmlFor, error, hint, children }: Props) {
   const errorId = `${htmlFor}-error`;
+  const hintId = `${htmlFor}-hint`;
+  const hintVisible = Boolean(hint) && !error;
   const control = isValidElement(children)
     ? cloneElement(children, {
         id: htmlFor,
         "aria-invalid": error ? true : undefined,
-        "aria-describedby": error ? errorId : undefined,
+        "aria-describedby": error ? errorId : hintVisible ? hintId : undefined,
       } as Record<string, unknown>)
     : children;
 
@@ -27,7 +29,11 @@ export function Field({ label, htmlFor, error, hint, children }: Props) {
         {label}
       </label>
       {control}
-      {hint && !error ? <p className="text-sm text-apagado">{hint}</p> : null}
+      {hintVisible ? (
+        <p id={hintId} className="text-sm text-apagado">
+          {hint}
+        </p>
+      ) : null}
       {error ? (
         <StatusMessage id={errorId} tono="error">
           {error}

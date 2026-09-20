@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import {
   CrearInvitacionRequestSchema,
   type CrearInvitacionRequest,
+  type EstadoInvitacionAdmin,
 } from "@event-promotion/shared-types";
 import { ApiError } from "../../shared/api/client";
 import {
@@ -26,11 +27,12 @@ import { useReenviarCodigo } from "../api/useReenviarCodigo";
 import { AdminNav } from "../components/AdminNav";
 import { useAdminSession } from "../context/AdminSessionContext";
 
-const ETIQUETA_ESTADO: Record<string, string> = {
+const ETIQUETA_ESTADO: Record<EstadoInvitacionAdmin, string> = {
   confirmada: "Confirmada",
   cancelada: "Cancelada",
   sin_respuesta: "Sin respuesta",
   rebotada: "Rebotada",
+  fallida: "Fallida",
 };
 
 export function InvitacionesPage() {
@@ -106,13 +108,22 @@ export function InvitacionesPage() {
 
         <div>
           <h2 className="font-display text-lg font-bold text-tinta">Invitaciones</h2>
-          {invitacionesQuery.isLoading ? <p className="mt-2 text-sm text-apagado">Cargando…</p> : null}
+          {invitacionesQuery.isLoading ? (
+            <StatusMessage tono="carga" className="mt-2">
+              Cargando…
+            </StatusMessage>
+          ) : null}
           {invitacionesQuery.isError ? (
             <StatusMessage tono="error" className="mt-2">
               No se pudo cargar el listado.
             </StatusMessage>
           ) : null}
-          {invitacionesQuery.data ? (
+          {invitacionesQuery.data?.length === 0 ? (
+            <StatusMessage tono="vacio" className="mt-2">
+              Todavía no hay invitaciones. Cree la primera con el formulario de arriba.
+            </StatusMessage>
+          ) : null}
+          {invitacionesQuery.data && invitacionesQuery.data.length > 0 ? (
             <Table className="mt-3">
               <thead>
                 <TableHeaderRow>
@@ -127,7 +138,7 @@ export function InvitacionesPage() {
                   <TableRow key={invitacion.idinvitacion}>
                     <TableCell>{invitacion.email}</TableCell>
                     <TableCell>{invitacion.nombreCliente ?? "—"}</TableCell>
-                    <TableCell>{ETIQUETA_ESTADO[invitacion.estado] ?? invitacion.estado}</TableCell>
+                    <TableCell>{ETIQUETA_ESTADO[invitacion.estado]}</TableCell>
                     <TableCell last>
                       <Button
                         type="button"

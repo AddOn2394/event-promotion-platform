@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { EstadoInvitacionAdmin } from "@event-promotion/shared-types";
+import { formatearCents, type EstadoInvitacionAdmin } from "@event-promotion/shared-types";
 import { API_URL } from "../../shared/api/client";
-import { formatearCents } from "../../shared/format";
 import {
+  Field,
   PageHeader,
   PageShell,
   Select,
@@ -23,11 +23,12 @@ const ETIQUETA_ESTADO: Record<EstadoInvitacionAdmin, string> = {
   cancelada: "Cancelada",
   sin_respuesta: "Sin respuesta",
   rebotada: "Rebotada",
+  fallida: "Fallida",
 };
 
-const ESTADOS: EstadoInvitacionAdmin[] = ["confirmada", "cancelada", "sin_respuesta", "rebotada"];
+const ESTADOS: EstadoInvitacionAdmin[] = ["confirmada", "cancelada", "sin_respuesta", "rebotada", "fallida"];
 
-// HU-8 (ADR-024): listado filtrable por los 4 estados (nunca agrupados) + export CSV. El
+// HU-8 (ADR-024): listado filtrable por los 5 estados (nunca agrupados, ADR-030) + export CSV. El
 // export es un link directo al endpoint (Content-Disposition: attachment) — el navegador
 // lo descarga con la cookie de sesión de admin, sin que apps/web procese el CSV.
 export function ConfirmacionesPage() {
@@ -51,16 +52,8 @@ export function ConfirmacionesPage() {
         <PageHeader title="Confirmaciones" />
 
         <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <label htmlFor="filtro-estado" className="text-sm font-medium text-tinta">
-              Filtrar por estado
-            </label>
-            <Select
-              id="filtro-estado"
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value as EstadoInvitacionAdmin | "")}
-              className="mt-1.5"
-            >
+          <Field label="Filtrar por estado" htmlFor="filtro-estado">
+            <Select value={filtro} onChange={(e) => setFiltro(e.target.value as EstadoInvitacionAdmin | "")}>
               <option value="">Todos</option>
               {ESTADOS.map((estado) => (
                 <option key={estado} value={estado}>
@@ -68,7 +61,7 @@ export function ConfirmacionesPage() {
                 </option>
               ))}
             </Select>
-          </div>
+          </Field>
 
           <a
             href={`${API_URL}/admin/confirmaciones/export.csv`}
@@ -78,9 +71,14 @@ export function ConfirmacionesPage() {
           </a>
         </div>
 
-        {confirmacionesQuery.isLoading ? <p className="text-sm text-apagado">Cargando…</p> : null}
+        {confirmacionesQuery.isLoading ? <StatusMessage tono="carga">Cargando…</StatusMessage> : null}
         {confirmacionesQuery.isError ? <StatusMessage tono="error">No se pudo cargar el listado.</StatusMessage> : null}
-        {confirmacionesQuery.data ? (
+        {confirmacionesQuery.data?.length === 0 ? (
+          <StatusMessage tono="vacio">
+            {filtro ? "Ninguna invitación tiene este estado." : "Todavía no hay invitaciones."}
+          </StatusMessage>
+        ) : null}
+        {confirmacionesQuery.data && confirmacionesQuery.data.length > 0 ? (
           <Table>
             <thead>
               <TableHeaderRow>

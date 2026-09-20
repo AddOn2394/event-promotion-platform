@@ -114,6 +114,37 @@ describe("registration — POST /confirmaciones (HU-3), integración contra Post
     expect(res.status).toBe(400);
   });
 
+  it("devuelve editableHastaEn = inicio del slot − N días (ADR-010), igual en POST y en GET /mia, y la notificación queda enviada", async () => {
+    const cookie = await loginClienteDePrueba();
+    const res = await request(app)
+      .post("/confirmaciones")
+      .set("Cookie", cookie)
+      .send({
+        items: [{ catalogoItemId: fixtures.servicioBaratoId, categoria: "servicio" }],
+        slotId: fixtures.slotId,
+      });
+    expect(res.status).toBe(201);
+
+    const { rows } = await pool.query<{ limite: Date }>(
+      `SELECT s.fecha_hora_inicio - (c.dias_deadline_edicion * interval '1 day') AS limite
+       FROM slots s, configuracion_evento c WHERE s.idslot = $1`,
+      [fixtures.slotId],
+    );
+    const limiteEsperado = rows[0]?.limite.toISOString();
+    expect(res.body.editableHastaEn).toBe(limiteEsperado);
+
+    const mia = await request(app).get("/confirmaciones/mia").set("Cookie", cookie);
+    expect(mia.body.editableHastaEn).toBe(limiteEsperado);
+
+    // Con NODE_ENV=test el mailer simula un envío exitoso (mailer.ts) — 'enviado', no 'fallido'.
+    const { rows: notif } = await pool.query<{ estado_envio: string }>(
+      `SELECT n.estado_envio FROM notificaciones n JOIN invitaciones i ON i.idinvitacion = n.idinvitacion
+       WHERE i.email = $1 AND n.tipo = 'confirmacion'`,
+      [EMAIL_CLIENTE],
+    );
+    expect(notif[0]?.estado_envio).toBe("enviado");
+  });
+
   it("confirma con 2 servicios > Q1,500 → 5%, ignora la categoría enviada por el cliente y usa la real de la DB", async () => {
     const cookie = await loginClienteDePrueba();
     // servicioBarato=50000 + servicioCaro=120000 = 170000 > 150000 → 5% (ADR-005).
