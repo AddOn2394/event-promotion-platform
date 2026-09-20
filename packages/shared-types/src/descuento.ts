@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { formatearCents } from "./money.js";
+import { MONTO_MAXIMO_CENTS } from "./primitives.js";
 
 // Contrato del motor de descuento (ADR-004, ADR-005, ADR-023) — umbrales configurables
 // desde configuracion_descuento; los porcentajes 3/5 son fijos en código, no en este schema.
@@ -7,12 +9,23 @@ import { z } from "zod";
 // límite de red que necesite validarse — Zod es para datos no confiables entrando/saliendo
 // de la API, no para el resultado de un cálculo que el propio código ya controla.
 
+const UmbralSchema = z
+  .number({ required_error: "Ingrese una cantidad", invalid_type_error: "Ingrese un número entero mayor que 0" })
+  .int("Ingrese un número entero mayor que 0")
+  .positive("Ingrese un número entero mayor que 0");
+
+const MontoMinimoSchema = z
+  .number({ required_error: "Ingrese un monto", invalid_type_error: "Ingrese un monto válido" })
+  .int("Ingrese un monto válido")
+  .positive("El monto mínimo debe ser mayor que 0")
+  .max(MONTO_MAXIMO_CENTS, `El monto no puede superar ${formatearCents(MONTO_MAXIMO_CENTS)}`);
+
 export const ConfiguracionDescuentoSchema = z.object({
-  minServicios3pct: z.number().int().positive(),
-  minServicios5pct: z.number().int().positive(),
-  montoMinimo5pctServiciosCents: z.number().int().positive(),
-  minProductos3pct: z.number().int().positive(),
-  minProductos5pct: z.number().int().positive(),
+  minServicios3pct: UmbralSchema,
+  minServicios5pct: UmbralSchema,
+  montoMinimo5pctServiciosCents: MontoMinimoSchema,
+  minProductos3pct: UmbralSchema,
+  minProductos5pct: UmbralSchema,
 });
 
 export type ConfiguracionDescuento = z.infer<typeof ConfiguracionDescuentoSchema>;

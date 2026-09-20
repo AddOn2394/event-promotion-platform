@@ -6,7 +6,7 @@ import {
   ActualizarConfiguracionDescuentoRequestSchema,
   type ActualizarConfiguracionDescuentoRequest,
 } from "@event-promotion/shared-types";
-import { Button, Field, Input, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
+import { Button, Field, Input, MoneyController, PageHeader, PageShell, StatusMessage } from "../../shared/ui";
 import { useActualizarConfiguracionDescuento, useConfiguracionDescuentoAdmin } from "../api/useConfiguracionDescuentoAdmin";
 import { AdminNav } from "../components/AdminNav";
 import { useAdminSession } from "../context/AdminSessionContext";
@@ -22,6 +22,7 @@ export function ConfiguracionDescuentoPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -61,16 +62,11 @@ export function ConfiguracionDescuentoPage() {
               <Input type="number" min={1} step={1} {...register("minServicios5pct", { valueAsNumber: true })} />
             </Field>
             <Field
-              label="Monto mínimo en servicios para 5% (centavos)"
+              label="Monto mínimo en servicios para 5% (Q)"
               htmlFor="montoMinimo5pctServiciosCents"
               error={errors.montoMinimo5pctServiciosCents?.message}
             >
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                {...register("montoMinimo5pctServiciosCents", { valueAsNumber: true })}
-              />
+              <MoneyController name="montoMinimo5pctServiciosCents" control={control} />
             </Field>
             <Field label="Mínimo de productos para 3%" htmlFor="minProductos3pct" error={errors.minProductos3pct?.message}>
               <Input type="number" min={1} step={1} {...register("minProductos3pct", { valueAsNumber: true })} />

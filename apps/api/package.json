@@ -11,6 +11,7 @@
     "test": "vitest run",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed:catalogo": "tsx src/db/seed-catalogo-cli.ts",
     "test:db:setup": "tsx src/db/create-test-db.ts"
   },
   "dependencies": {

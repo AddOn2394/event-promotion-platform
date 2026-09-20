@@ -17,10 +17,14 @@ export const ConfirmarAsistenciaRequestSchema = z.object({
   items: z
     .array(ConfirmarAsistenciaItemSchema)
     .min(1, "Debe seleccionar al menos un servicio o producto"),
-  slotId: UuidSchema,
+  // "" (opción vacía del select) no es un uuid: el mensaje pide elegir un horario en vez de
+  // mostrar el "Invalid uuid" por defecto.
+  slotId: z
+    .string({ required_error: "Seleccione un horario" })
+    .uuid("Seleccione un horario"),
   // Editable al confirmar (ADR-011) — el email de la invitación nunca se edita, solo el
   // nombre. Opcional: si no viene, se conserva el nombre_cliente que ya tenía la invitación.
-  nombreCliente: z.string().min(1).optional(),
+  nombreCliente: z.string().min(1, "El nombre no puede quedar vacío").optional(),
 });
 
 // Los cinco números que el motor de descuento produce (ADR-004/ADR-005). Lo usan también los

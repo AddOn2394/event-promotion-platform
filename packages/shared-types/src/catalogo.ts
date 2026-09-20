@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CentsSchema, UuidSchema } from "./primitives.js";
+import { CentsSchema, MontoIngresadoSchema, UuidSchema } from "./primitives.js";
 
 // Contrato de catálogo (HU-3, ADR-007, ADR-012) — catálogo seedeado, sin CRUD todavía (Gate 5).
 
@@ -27,9 +27,9 @@ export const CatalogoItemAdminSchema = CatalogoItemSchema.extend({
 export const CatalogoAdminResponseSchema = z.array(CatalogoItemAdminSchema);
 
 export const CrearCatalogoItemRequestSchema = z.object({
-  nombre: z.string().min(1),
+  nombre: z.string({ required_error: "El nombre es obligatorio" }).min(1, "El nombre no puede quedar vacío"),
   categoria: CategoriaCatalogoSchema,
-  precioCents: CentsSchema,
+  precioCents: MontoIngresadoSchema,
 });
 
 // Reemplazo completo (mismo patrón que EditarConfirmacionRequestSchema) — un formulario

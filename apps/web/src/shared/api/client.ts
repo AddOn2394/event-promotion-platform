@@ -22,21 +22,36 @@ function extraerMensaje(body: unknown, fallback: string): string {
   return fallback;
 }
 
+const ERROR_DE_RED = "No se pudo conectar con el servidor. Verifique su conexión e intente de nuevo.";
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+    });
+  } catch (error) {
+    // Una cancelación pedida por quien llama (AbortSignal) no es un problema de conexión.
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    // Sin conexión, servidor caído o bloqueo de CORS: el navegador lanza un TypeError en inglés
+    // ("Failed to fetch") que no le dice nada útil a quien está usando la pantalla.
+    throw new ApiError(0, ERROR_DE_RED, undefined);
+  }
 
   const isJson = res.headers.get("content-type")?.includes("application/json") ?? false;
   const body: unknown = isJson ? await res.json().catch(() => undefined) : undefined;
 
   if (!res.ok) {
-    throw new ApiError(res.status, extraerMensaje(body, `Error ${res.status}`), body);
+    throw new ApiError(
+      res.status,
+      extraerMensaje(body, `Ocurrió un error inesperado (código ${res.status}). Intente de nuevo en unos minutos.`),
+      body,
+    );
   }
 
   return body as T;

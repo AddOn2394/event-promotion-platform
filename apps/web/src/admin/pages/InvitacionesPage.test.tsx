@@ -33,7 +33,7 @@ describe("InvitacionesPage — nombreCliente vacío no debe romper el submit (bu
     fireEvent.click(screen.getByRole("button", { name: /invitar/i }));
 
     await screen.findByText(/invitación creada/i);
-    expect(screen.queryByText(/al menos 1 carácter|string must contain/i)).toBeNull();
+    expect(screen.queryByText(/el nombre no puede quedar vacío/i)).toBeNull();
 
     const postCall = fetchSpy.mock.calls.find((call) => (call[1]?.method ?? "GET") === "POST");
     const body = JSON.parse((postCall?.[1] as RequestInit).body as string);

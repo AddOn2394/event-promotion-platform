@@ -1,19 +1,12 @@
 import bcrypt from "bcryptjs";
 import { Pool } from "pg";
+import { sembrarCatalogo } from "./seed-catalogo.js";
 
 // Seed idempotente para Gate 2 (spec/PLAN_DESARROLLO.md). Catálogo y slots son datos
 // iniciales de ejemplo — pendiente de reemplazar con el listado real de servicios/productos
-// y horarios del evento (ver spec/todo.md). configuracion_descuento sí usa los valores
+// y horarios del evento (ver spec/todo.md). Los ítems del catálogo viven en
+// seed-catalogo.ts, que también expone la carga aditiva (`db:seed:catalogo`). configuracion_descuento sí usa los valores
 // reales del PDF (ADR-023), no son provisionales.
-
-const CATALOGO_INICIAL = [
-  { nombre: "Diagnóstico de red", categoria: "servicio", precioCents: 50_000 },
-  { nombre: "Instalación de cableado", categoria: "servicio", precioCents: 75_000 },
-  { nombre: "Soporte técnico anual", categoria: "servicio", precioCents: 120_000 },
-  { nombre: "Router empresarial", categoria: "producto", precioCents: 45_000 },
-  { nombre: "Switch de 24 puertos", categoria: "producto", precioCents: 60_000 },
-  { nombre: "Access point WiFi 6", categoria: "producto", precioCents: 35_000 },
-] as const;
 
 const SLOTS_INICIALES = [
   { inicio: "2026-11-10T14:00:00Z", fin: "2026-11-10T16:00:00Z", cupoMaximo: 30 },
@@ -31,19 +24,18 @@ const CONFIGURACION_DESCUENTO = {
   minProductos5pct: 5,
 };
 
+// Como el resto de las tablas: si ya tiene datos, no se toca. Volver a correr `db:seed` (p. ej.
+// para agregar slots) nunca debe reinsertar ítems de ejemplo que el negocio ya renombró o borró
+// desde /admin/catalogo. Para AGREGAR los que falten a un catálogo existente hay un comando
+// explícito y separado: `npm run db:seed:catalogo`.
 async function seedCatalogo(pool: Pool): Promise<void> {
   const { rows } = await pool.query<{ count: string }>("SELECT COUNT(*) FROM catalogo_items");
   if (Number(rows[0]?.count) > 0) {
-    console.log("catalogo_items ya tiene datos — se omite el seed.");
+    console.log("catalogo_items ya tiene datos — se omite el seed (para agregar los que falten: npm run db:seed:catalogo).");
     return;
   }
-  for (const item of CATALOGO_INICIAL) {
-    await pool.query(
-      "INSERT INTO catalogo_items (nombre, categoria, precio_cents) VALUES ($1, $2, $3)",
-      [item.nombre, item.categoria, item.precioCents],
-    );
-  }
-  console.log(`catalogo_items: ${CATALOGO_INICIAL.length} filas insertadas.`);
+  const nuevos = await sembrarCatalogo(pool);
+  console.log(`catalogo_items: ${nuevos} filas insertadas.`);
 }
 
 async function seedSlots(pool: Pool): Promise<void> {

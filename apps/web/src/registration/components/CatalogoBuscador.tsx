@@ -81,8 +81,12 @@ function ListaCatalogo({
               className="shrink-0"
               onClick={() => onAgregar(item)}
               disabled={seleccionadosIds.has(item.id)}
+              // El texto visible es solo "Agregar" (el nombre del ítem ya está a su lado); el nombre
+              // accesible lo completa para que un lector de pantalla distinga entre 15 botones
+              // iguales. Cumple WCAG 2.5.3 (Label in Name): contiene el texto visible.
+              aria-label={seleccionadosIds.has(item.id) ? `Agregado: ${item.nombre}` : `Agregar ${item.nombre}`}
             >
-              {seleccionadosIds.has(item.id) ? "Agregado" : `Agregar ${item.nombre}`}
+              {seleccionadosIds.has(item.id) ? "Agregado" : "Agregar"}
             </Button>
           </li>
         ))}

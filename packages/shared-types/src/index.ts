@@ -1,3 +1,4 @@
+export * from "./errores-es.js";
 export * from "./primitives.js";
 export * from "./confirmaciones.js";
 export * from "./catalogo.js";

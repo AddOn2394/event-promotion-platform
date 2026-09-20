@@ -38,4 +38,18 @@ describe("CatalogoBuscador — filtro client-side (ADR-012)", () => {
 
     expect(onAgregar).toHaveBeenCalledWith(CATALOGO[2]);
   });
+
+  it("el texto visible del botón es solo \"Agregar\", sin repetir el nombre; el nombre accesible sí lo incluye", () => {
+    render(<CatalogoBuscador catalogo={CATALOGO} seleccionadosIds={new Set()} onAgregar={vi.fn()} />);
+    const boton = screen.getByRole("button", { name: /agregar crema facial/i });
+    expect(boton.textContent).toBe("Agregar");
+    expect(boton.getAttribute("aria-label")).toBe("Agregar Crema facial");
+  });
+
+  it("ya agregado: el texto visible es 'Agregado' y el nombre accesible conserva el nombre del ítem", () => {
+    render(<CatalogoBuscador catalogo={CATALOGO} seleccionadosIds={new Set(["3"])} onAgregar={vi.fn()} />);
+    const boton = screen.getByRole("button", { name: /agregado: crema facial/i });
+    expect(boton.textContent).toBe("Agregado");
+    expect((boton as HTMLButtonElement).disabled).toBe(true);
+  });
 });

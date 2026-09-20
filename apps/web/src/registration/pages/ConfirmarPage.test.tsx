@@ -55,7 +55,7 @@ describe("ConfirmarPage — nombreCliente vacío no debe romper el submit (bug d
     fireEvent.click(screen.getByRole("button", { name: /confirmar asistencia/i }));
 
     await screen.findByRole("heading", { name: /su asistencia está confirmada/i });
-    expect(screen.queryByText(/al menos 1 carácter|string must contain/i)).toBeNull();
+    expect(screen.queryByText(/el nombre no puede quedar vacío/i)).toBeNull();
 
     // Recibo: ítems elegidos, total formateado y fecha límite de edición (ADR-010).
     expect(screen.getByText("Servicio de prueba")).toBeTruthy();
@@ -73,3 +73,34 @@ describe("ConfirmarPage — nombreCliente vacío no debe romper el submit (bug d
     sessionStorage.clear();
   });
 });
+
+describe("ConfirmarPage — enviar sin elegir horario", () => {
+  it("pide seleccionar un horario, en español, y no muestra el 'Invalid uuid' por defecto de Zod", async () => {
+    sessionStorage.setItem("cliente-session", JSON.stringify({ email: "cliente@example.com", nombreCliente: null }));
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = typeof input === "string" ? input : (input as Request).url;
+      if (url.includes("/catalogo")) return jsonResponse([ITEM]);
+      if (url.includes("/slots")) return jsonResponse([SLOT]);
+      if (url.includes("/configuracion-descuento")) return jsonResponse(CONFIG);
+      throw new Error(`fetch no mockeado: ${url}`);
+    });
+
+    renderWithProviders(<ConfirmarPage />, { initialEntries: ["/confirmar"] });
+
+    await screen.findByRole("heading", { name: /confirmar asistencia/i });
+    fireEvent.click(screen.getByRole("button", { name: /agregar servicio de prueba/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirmar asistencia/i }));
+
+    expect(await screen.findByText("Seleccione un horario")).toBeTruthy();
+    expect(screen.queryByText(/invalid|uuid/i)).toBeNull();
+
+    // Nada se envió al servidor: la validación es del formulario, con el schema compartido.
+    const posts = fetchSpy.mock.calls.filter((call) => (call[1]?.method ?? "GET") === "POST");
+    expect(posts).toHaveLength(0);
+
+    fetchSpy.mockRestore();
+    sessionStorage.clear();
+  });
+});
+

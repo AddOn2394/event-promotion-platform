@@ -29,6 +29,11 @@ export const SlotAdminSchema = z.object({
 
 export const SlotsAdminResponseSchema = z.array(SlotAdminSchema);
 
+const CupoMaximoSchema = z
+  .number({ required_error: "Ingrese el cupo máximo", invalid_type_error: "El cupo debe ser un número entero mayor que 0" })
+  .int("El cupo debe ser un número entero mayor que 0")
+  .positive("El cupo debe ser un número entero mayor que 0");
+
 function fechaFinDespuesDeInicio(data: { fechaHoraInicio: string; fechaHoraFin: string }): boolean {
   return new Date(data.fechaHoraFin) > new Date(data.fechaHoraInicio);
 }
@@ -37,10 +42,10 @@ export const CrearSlotRequestSchema = z
   .object({
     fechaHoraInicio: DatetimeSchema,
     fechaHoraFin: DatetimeSchema,
-    cupoMaximo: z.number().int().positive(),
+    cupoMaximo: CupoMaximoSchema,
   })
   .refine(fechaFinDespuesDeInicio, {
-    message: "fechaHoraFin debe ser posterior a fechaHoraInicio",
+    message: "La fecha y hora de fin debe ser posterior a la de inicio",
     path: ["fechaHoraFin"],
   });
 
@@ -52,11 +57,11 @@ export const ActualizarSlotRequestSchema = z
   .object({
     fechaHoraInicio: DatetimeSchema,
     fechaHoraFin: DatetimeSchema,
-    cupoMaximo: z.number().int().positive(),
+    cupoMaximo: CupoMaximoSchema,
     activo: z.boolean(),
   })
   .refine(fechaFinDespuesDeInicio, {
-    message: "fechaHoraFin debe ser posterior a fechaHoraInicio",
+    message: "La fecha y hora de fin debe ser posterior a la de inicio",
     path: ["fechaHoraFin"],
   });
 

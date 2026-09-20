@@ -182,7 +182,8 @@
           "montoMinimo5pctServiciosCents": {
             "type": "integer",
             "minimum": 0,
-            "exclusiveMinimum": true
+            "exclusiveMinimum": true,
+            "maximum": 999999999
           },
           "minProductos3pct": {
             "type": "integer",
@@ -759,7 +760,8 @@
           },
           "precioCents": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 999999999
           }
         },
         "required": [
@@ -784,7 +786,8 @@
           },
           "precioCents": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 999999999
           },
           "activo": {
             "type": "boolean"
@@ -964,7 +967,8 @@
           "montoMinimo5pctServiciosCents": {
             "type": "integer",
             "minimum": 0,
-            "exclusiveMinimum": true
+            "exclusiveMinimum": true,
+            "maximum": 999999999
           },
           "minProductos3pct": {
             "type": "integer",

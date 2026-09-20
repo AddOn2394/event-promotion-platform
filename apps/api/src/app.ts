@@ -55,7 +55,13 @@ export function createApp(): Express {
       return;
     }
     if (err instanceof ZodError) {
-      res.status(400).json({ error: err.flatten() });
+      // `error` es siempre un texto legible en español (apiFetch solo lee esa clave cuando es
+      // string; con el objeto de flatten() el cliente caía al genérico "Error 400"). El detalle
+      // por campo viaja aparte, en `campos`.
+      res.status(400).json({
+        error: err.issues[0]?.message ?? "Los datos enviados no son válidos.",
+        campos: err.flatten().fieldErrors,
+      });
       return;
     }
     if (err instanceof HttpError) {

@@ -7,6 +7,7 @@ import {
   Button,
   Field,
   Input,
+  MoneyController,
   PageHeader,
   PageShell,
   Select,
@@ -36,12 +37,15 @@ export function CatalogoAdminPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm<CrearCatalogoItemRequest>({
     resolver: zodResolver(CrearCatalogoItemRequestSchema),
-    defaultValues: { nombre: "", categoria: "servicio", precioCents: 0 },
+    // precioCents sin valor inicial: el campo arranca vacío (no un "0" precargado) y el schema
+    // exige que se ingrese un monto.
+    defaultValues: { nombre: "", categoria: "servicio", precioCents: undefined },
   });
 
   useEffect(() => {
@@ -74,8 +78,8 @@ export function CatalogoAdminPage() {
             </Select>
           </Field>
 
-          <Field label="Precio (centavos)" htmlFor="precioCents" error={errors.precioCents?.message}>
-            <Input type="number" min={0} step={1} {...register("precioCents", { valueAsNumber: true })} />
+          <Field label="Precio (Q)" htmlFor="precioCents" error={errors.precioCents?.message}>
+            <MoneyController name="precioCents" control={control} />
           </Field>
 
           {crear.isError ? <StatusMessage tono="error">{crear.error.message}</StatusMessage> : null}

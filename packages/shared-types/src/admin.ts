@@ -8,7 +8,7 @@ import { CentsSchema, DatetimeSchema, EmailSchema, PctSchema, UuidSchema } from 
 
 export const AdminLoginRequestSchema = z.object({
   email: EmailSchema,
-  password: z.string().min(1),
+  password: z.string({ required_error: "Ingrese su contraseña" }).min(1, "Ingrese su contraseña"),
 });
 
 export const AdminLoginResponseSchema = z.object({
@@ -17,7 +17,7 @@ export const AdminLoginResponseSchema = z.object({
 
 export const CrearInvitacionRequestSchema = z.object({
   email: EmailSchema,
-  nombreCliente: z.string().min(1).optional(),
+  nombreCliente: z.string().min(1, "El nombre no puede quedar vacío").optional(),
 });
 
 export const CrearInvitacionResponseSchema = z.object({

@@ -2,6 +2,8 @@ export { Button } from "./Button";
 export { Card } from "./Card";
 export { Field } from "./Field";
 export { Input } from "./Input";
+export { MoneyController } from "./MoneyController";
+export { MoneyInput } from "./MoneyInput";
 export { PageHeader } from "./PageHeader";
 export { PageShell } from "./PageShell";
 export { Select } from "./Select";
