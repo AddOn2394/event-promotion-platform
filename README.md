@@ -72,4 +72,15 @@ npm run test                        # corre los 3 workspaces (apps/api, apps/web
 
 ## Demo pública
 
-Todavía no hay ninguna rama posterior a Gate 1 desplegada en Render — el deploy activo (`https://event-promotion-api.onrender.com`, `https://event-promotion-web.onrender.com`) solo sirve el placeholder de Gate 1. No hay link de demo funcional con las features de Gate 2 en adelante hasta que se despliegue y se verifique explícitamente.
+Desplegada en Render (cada servicio en su propio contenedor Docker, más una base PostgreSQL gestionada):
+
+| Servicio | URL |
+|---|---|
+| Web (React) | https://event-promotion-web.onrender.com |
+| API (Node/Express) | https://event-promotion-api.onrender.com (`/health`) |
+
+- **Primer request lento**: es el plan gratuito de Render; un servicio inactivo tarda entre 30 y 60 segundos en despertar.
+- **Panel de ventas (admin)**: `/admin/login`. Desde ahí se invita a un cliente (`/admin/invitaciones`), se ve y exporta el listado de confirmaciones, y se administran catálogo, slots y umbrales de descuento.
+- **Formulario del cliente**: no es público. Se entra con el correo invitado y un código de 6 dígitos que llega por correo (`/login`). Para probarlo, invitar desde el panel de ventas un correo propio: el mensaje sale de `@cscompanyserv.com` con el código y un enlace directo.
+- **Diseño y decisiones**: la carpeta [`spec/`](spec/) tiene el spec funcional (historias de usuario y modelo de datos), las decisiones de arquitectura (ADR) y el plan por gates.
+- **Contrato de la API**: `packages/shared-types/openapi.json`, generado desde los mismos schemas Zod que validan web y API.
