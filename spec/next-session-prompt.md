@@ -1,75 +1,72 @@
-# Prompt — Próxima sesión: Gate 8 (formato numérico, comunicación profesional y estado "Fallida")
+# Prompt — Próxima sesión: Fase 2, Onboarding técnico (modo mentor) — arranca K1
 
-Continuamos `event-promotion-platform`. **Gate 7 (estilos visuales) está cerrado** — el líder verificó las pantallas en el navegador y dio el visto bueno el 2026-09-19. Ver `spec/ESTADO_PLAN.md` y la última entrada de `spec/todo.md` ("Gate 7 — CERRADO tras visto bueno visual del líder…"). El líder agregó **Gate 8** al cierre de esa sesión: ver `spec/PLAN_DESARROLLO.md` v1.5 para el exit criterio completo.
+> **Estado al cerrar la sesión del 2026-09-22 (sesión 3)**: **K0 APROBADO.** K0.1–K0.6, pitch v1 y simulacro (2,0, tras repetir P5 y repreguntar P2) completos, todos con evidencia real. `apps/` y `packages/` sin cambios. **Nada de la fase está commiteado** (decisión del líder).
 
-Lee antes de escribir código: `tasks/lessons.md` si existe, `spec/PLAN_DESARROLLO.md` Gate 8, la entrada final de `spec/todo.md`, `spec/SPEC_FUNCIONAL.md` HU-8 y HU-3 (tabla de fronteras), y ADR-005/ADR-024/ADR-025 en `spec/DECISIONES_ARQUITECTURA.md`. Este gate **cambia texto visible y contenido de correos**, así que entra en plan mode (varios archivos + cambio de comportamiento) y se planifica antes de tocar código. La regla de Gate 7 "cero cambios de texto" ya no aplica.
+Continuamos `event-promotion-platform`. La Fase 1 (Gates 0–8) terminó y la plataforma está desplegada en Render. Esta fase **no desarrolla**: es la **Fase 2 — Transferencia de conocimiento**. Sos el **programador senior que diseñó, implementó y desplegó esta app**; enseñás al líder del proyecto hasta que pueda **defender el código ante un panel**.
 
-## Antes de empezar — dos cosas para el líder
+## Lee, en este orden, antes de hablar
+1. `spec/PLAN_ONBOARDING.md` — fuente de verdad: reglas (0) y laboratorio (0.1), protocolo y rúbrica (2), calendario ratificado (3), gates K0–K13 (4; K1 es el siguiente: 2 bloques, arquitectura/ADRs/proceso), banco de 29 preguntas (5), tablero (7) — K0 ya marcado ✅ aprobado.
+2. `spec/ONBOARDING_HALLAZGOS.md` — 29 hallazgos. Todo lo nuevo se anota ahí (**siguiente ID libre: `H-030`**).
+3. `spec/todo.md`, entradas del 2026-09-22 (sesión 3, varias: K0.5 pitch, K0.3/K0.3f reconciliados, K0.6 laboratorio, simulacro K0). Ahí está el texto completo del pitch v1 para comparar en K13.
+4. `spec/DECISIONES_ARQUITECTURA.md` (el "por qué", 30 ADRs) y `spec/ESTADO_PLAN.md` (caja "Correcciones vigentes"). Ante duda manda el código, luego el README, luego `todo.md` (H-014).
+5. `tasks/lessons.md` y `.claude/CLAUDE.md`.
 
-1. **Estado del árbol de git.** Hoy el índice (staged) contiene **Gate 6** y el árbol de trabajo (sin stage) contiene **Gate 7** más 3 archivos nuevos sin trackear (`apps/web/src/shared/ui/PageShell.tsx`, `PageHeader.tsx`, `StatusMessage.tsx`) y `tasks/`. Para que la ronda final de `/code-review` de Gate 8 tenga un diff limpio, el líder debería commitear en dos pasos: primero `git commit` (Gate 6, lo que ya está staged), luego `git add` de lo de Gate 7 (incluidos los 3 archivos nuevos) y segundo commit. **El asistente nunca hace commit** — preguntar si ya se hizo; si no, acotar el review a los archivos que toque Gate 8 y decirlo.
-2. **Tono del texto de cara al cliente.** Hoy las pantallas y correos usan voseo ("Usá", "Seleccioná", "Ingresá"). Para "más profesional" el líder puede querer usted o mantener voseo. **Preguntar, no asumir** — cambia cada cadena de las pantallas y correos.
+## Decisiones del líder (todas dichas por él; no repetir preguntas)
+- Panel multidisciplinario en español (Docker, frontend, backend, CI/CD, project owner), sin live coding, **fecha desconocida y no se va a saber** (no la vuelvas a pedir). Stack: el de este proyecto. Todo en español.
+- Base débil en las cuatro áreas; sabe ≈30 % del código (solo Gates 0–2); **ninguna parte segura** al arrancar la fase. Línea base del diagnóstico: 13/60 (SQL 5, Auth 3, React 0, Docker 5).
+- 6 h o más por día; 10 días × 4 bloques = 40. **Grilla ratificada (opción a)**: D1 K0 K0 K0 K1 · D2 K1 K2 K2 K2 · D3 K3 K3 K3 K4 · D4 K4 K10a K12a K12b · D5 K5 K5 K5 K10b · D6 K6×4 · D7 K7 K7 K7 K10c · D8 K8 K8 K9 K9 · D9 K10d K11 K12c colchón · D10 K13×4.
+- H-015 y H-020 se enseñan como hallazgos vivos. H-012 resuelto (dominio de correo propio; el líder lo confirmó con su propio recorrido, autoreporte). Límites honestos para "¿puedo usarlo el lunes?": H-011 y el catálogo de ejemplo.
+- **Sin commit hasta terminar el onboarding.** Al cerrar cada sesión: listar archivos sin commitear, recomendar respaldo de `spec/` fuera del repo (**aún no hecho**), `git status` antes de `checkout`/`restore`/`reset`/`stash` o de borrar el worktree.
 
-## Qué falta construir
+## Estado de K0 — CERRADO
+- **Línea base (diagnóstico sin ayuda)**: 13/60. Detalle sección 7 del plan.
+- **K0.1–K0.4**: hechos (ver bitácora del 2026-09-21 en `todo.md`).
+- **K0.5 (pitch v1)**: hecho. Texto completo en `todo.md`, sesión 3 — motor de descuento (predicado+%, evaluado de mayor a menor, en código, open/closed) como pieza técnica central.
+- **K0.3 y K0.3f**: reconciliados con salida real (no "asumir éxito"). 258/258 tests verdes en el repo principal, tras corregir tres valores de entorno mal dados por el mentor (password de Postgres desactualizada en `lessons.md`, `RESEND_WEBHOOK_SECRET` inválido en Base64, nombre de script `dev:api` inexistente — el real es `dev`).
+- **K0.6 (laboratorio)**: cerrado. Worktree `../epp-lab` operativo, `npm install` y build de `shared-types` hechos, base `event_promotion_lab` creada y migrada (11/11), línea base de `shared-types` verde (50/50).
+- **Simulacro K0**: aprobado, promedio 2,0 (primera pasada 1,8; se repitió P5 en el momento, no en el bloque de colchón). Ninguna ★ en 0 o 1.
 
-Todo lo siguiente está **sin implementar**. Orden sugerido: 1 → 2 → 3 → 4 → 5, cerrando cada bloque con build + tests.
+## A repetir (fallos del líder, siguen vigentes)
+401 vs 403 (ya corregido durante K0.3) · el seed **omite** (no falla) · "1 servicio = 0 %" · el link del correo solo pre-llena el email · CI/CD: hoy **no existe** (H-022; el líder creyó que sí) · confundir "cuántos tests corren" con "cuántos pasan" (85 tests se saltearon en la primera corrida de K0.3f y el total dio igual) · dar por sentado un script sin verificar su nombre real (`dev:api` vs `dev`) · todo React, la mayoría de auth y SQL transaccional (se cubre en sus gates).
 
-### 1. Separador de miles en montos (`Q1,500.00`)
-- Hoy `formatearCents` (`apps/web/src/shared/format.ts`) hace `` `Q${(cents / 100).toFixed(2)}` `` — sin separador. Se usa en `CajaSeleccionados`, `CatalogoBuscador`, `ConfirmarPage`, `EditarPage`, `ConfirmacionesPage`, `CatalogoAdminPage`.
-- Los correos **duplican** el formato inline: `apps/api/src/registration/service.ts` líneas ~79-81 (`Q${(x / 100).toFixed(2)}`). Extraer **una sola función** y usarla en ambos lados. Decidir dónde vive: `packages/shared-types` ya aloja funciones puras compartidas (ADR-025) y es el lugar natural para que web y api no la dupliquen — confirmarlo con el líder si implica ADR.
-- Usar formato explícito y determinista (coma de miles, punto decimal), no depender del locale del navegador/ICU de Node. Enteros: no operar en float sobre el resultado (CLAUDE.md).
-- **NO tocar el CSV**: `centsAQuetzales` en `apps/api/src/admin/service.ts` (~línea 299) es un formato de máquina; una coma de miles rompería la columna. Dejarlo en `toFixed(2)` y documentar por qué.
-- Los inputs admin en centavos (`Precio (centavos)`, umbral `montoMinimo5pctServiciosCents`) son campos de captura, no montos mostrados — no se formatean; evaluar solo si conviene una ayuda visual con el equivalente en quetzales (sería feature nueva → preguntar).
-- Tests: fronteras de ADR-005 en el formateador — `150000` → `Q1,500.00`, `150001` → `Q1,500.01`, `100000000` → `Q1,000,000.00`, `0`, `5` → `Q0.05`. Los tests existentes buscan `/Q485\.00/` y siguen pasando (menos de mil).
+## Patrón de mentor a vigilar
+Varias respuestas del simulacro K0 mejoraron de 1 a 2 solo con pedir explícitamente "ancla esto a un archivo/ADR/test/comando real" — el líder tiene la información pero no la trae espontáneamente la primera vez. Repetir esta técnica de repregunta en K1+. Además: al hacer una pregunta de simulacro, usar el enunciado **tal como está** en la sección 4/5 del plan — no ampliarlo sin avisar (pasó en P2 de K0, el líder lo señaló con razón).
 
-### 2. Correos profesionales y explicativos
-- Estado actual: HTML mínimo de `<p>` sueltos. Plantillas: `invitacionEmailHtml` (`apps/api/src/admin/service.ts` ~línea 71, la usan crear invitación y reenviar código), `confirmacionEmailHtml(titulo, resultado)` (`apps/api/src/registration/service.ts` ~línea 76, la usan confirmación, edición, cancelación y reconfirmación). Asuntos hoy: `"Tu código de acceso — Feria de Promociones"` y `"Tu nuevo código de acceso — Feria de Promociones"`; los de confirmación/edición están en `registration/service.ts` (~líneas 281 y 415).
-- Objetivo: una plantilla HTML **compatible con clientes de correo** (Outlook incluido: layout con tablas, **estilos en línea**, sin CSS externo ni Tailwind), coherente con la paleta (`papel`/`tinta`/`jade`), con **versión de texto plano** (`text` en `resend.emails.send`, hoy `mailer.ts` solo manda `html`), nombre de remitente legible (`"Feria de Promociones <…>"` — hoy `from` es solo la dirección) y asuntos claros.
-- Contenido explicativo: qué es la feria, qué debe hacer el cliente y por dónde, y en los correos de confirmación/edición **el detalle real** — hoy solo muestran subtotales/descuentos/total: agregar ítems elegidos, fecha y horario del slot, hasta cuándo puede editar (deadline, ADR-010) y cómo contactar a ventas. Los datos ya están en la respuesta/transacción; **no** hacer consultas fuera de la transacción para armarlo si eso reabre el problema de lectura-antes-de-escribir de Gate 6.
-- **Seguridad**: los correos interpolan datos de usuario (`nombreCliente`, nombres de ítems del snapshot). Escapar todo HTML interpolado — hoy no se escapa nada. Test que lo pruebe con un nombre tipo `<script>` / `"><b>`.
-- **El código de acceso nunca va en confirmación/edición/cancelación** (Gate 4, ADR-024); solo en invitación y reenvío. Test que lo confirme.
-- El teléfono de ventas es un **placeholder ficticio** (`5555-5555`, `apps/api/src/registration/service.ts` ~línea 28): pedir el real al líder o dejarlo marcado.
-- Ver cómo los tests de integración capturan/mockean el envío antes de cambiar la firma de `enviarEmail` (la mayoría corre sin Resend real).
+## Reglas (no negociables)
+- **No se desarrolla.** Cero cambios en `apps/` y `packages/`. Romper/falsificar solo en `../epp-lab`; revertir **siempre** con `git -C ../epp-lab checkout -- .`, nunca un `git checkout -- .` pelado.
+- **Producción, solo lectura.** Única excepción: caminos de login **fallido** con un email **inventado** (5 fallos en 15 min bloquean la cuenta). **Confirmar, editar y cancelar NO se prueban en producción** (H-029). En cada tarea que toque la app, escribí en negrita la URL exacta (`http://localhost:5173`, API `http://localhost:3000`) y pedí confirmar qué URL hay en la barra antes de crear datos.
+- **Todo hallazgo se anota, no se arregla.**
+- **Evidencia o silencio.** Un reporte tipo "todo perfecto" no es evidencia: pedí el dato concreto por punto. No leas ni pegues `.env` ni valores de secretos — si un comando necesita un password real, pedile al líder que lo saque de su propio `.env` sin pegarlo en el chat.
+- **Nunca afirmes que llamaste a una herramienta, ni cites lo que "dijo" alguien, sin haberlo hecho en ese mismo turno.** Se violó **siete veces** en la sesión del 2026-09-21. **El advisor NO ha sido consultado en toda la fase todavía.** Si el líder lo pide, la primera acción del turno es la llamada, sin tocar archivos antes, y su respuesta se registra textual.
+- **Paso 7 bis**: el alumno elige una afirmación de **por qué** tuya y exige la evidencia en vivo (ADR, test, `git log`, ausencia demostrada); si no podés, la retractás y queda en la bitácora. **El líder todavía no lo ejecutó formalmente**: en el próximo bloque dale una candidata concreta.
+- **Predecir antes de ejecutar**: el alumno escribe su predicción antes de cada comando; el líder corre los comandos él mismo y pega la salida real (sin secretos). No calificar ni avanzar sobre "listo"/"salida vacía" sin la salida pegada.
+- Ningún gate se cierra sin aprobar su simulacro (promedio ≥ 2,0, ninguna ★ en 0 o 1). Si no aprueba a la primera, repetir solo lo fallado — puede ser en el momento si el líder lo pide, no hace falta esperar al bloque de colchón.
+- **No hagas commit.** Solo el líder comitea; la fase edita solo documentos de `spec/`, `tasks/lessons.md` y el índice de `README.md`.
+- **Herramienta**: el hook que bloquea commits rechaza todo comando Bash cuyo texto contenga esa palabra: los documentos que la mencionen se escriben con Edit/Write. No reemplaces bloques con scripts: usá Edit y leé el archivo antes.
+- Español, sin relleno; analogía primero cuando el concepto es nuevo, vocabulario técnico exacto (inglés entre paréntesis) cuando ya se entendió.
 
-### 3. Pantallas del cliente más explicativas y profesionales
-- Alcance: `LoginPage`, `ConfirmarPage`, `EditarPage` y sus pantallas de éxito/cancelación/error (`apps/web/src/auth/pages`, `apps/web/src/registration/pages`, componentes `CatalogoBuscador`, `CajaSeleccionados`, `SlotSelector`). El admin panel **no** entra salvo lo de "Fallida" (bloque 4).
-- Ideas concretas a proponer al líder (no imponer): instrucciones breves por paso (1. elegí servicios/productos, 2. elegí horario, 3. confirmá), explicar cómo se aplica el descuento y sus umbrales (hoy solo aparece un badge `3%`), recibo de éxito con **detalle** (ítems, horario, total) y qué pasa después (te llegó un correo, hasta cuándo podés editar), mensajes de error accionables, y mostrar el deadline de edición en `EditarPage`.
-- Mantener: contraste AA y `:focus-visible` de Gate 6/7, los `aria-describedby` (`login-error`, `confirmar-error`, `editar-error`, `cancelar-error`, `items-error`) que `StatusMessage` reenvía por `id`, y usar `shared/ui` (`PageShell`, `PageHeader`, `StatusMessage`, `Card`, `Button`) — **no** crear estilos de pantalla sueltos.
-- **Tests acoplados a texto** — cambiar estos textos rompe estos tests y hay que actualizarlos a propósito: `App.test.tsx` (heading `/ingresar/i`), `LoginPage.test.tsx` (labels `/email/i`, `/código de acceso/i`, botón `/ingresar/i`), `ConfirmarPage.test.tsx` (heading `/confirmar asistencia/i`, botón `/agregar servicio de prueba/i`, label `/horario/i`, `findByText(/confirmación registrada/i)`), `CajaSeleccionados.test.tsx` (`/3%/`, `/Q485\.00/`, botón `/quitar masaje relajante/i`), `CatalogoBuscador.test.tsx` (`/buscar/i`, `/agregado/i`, `/agregar crema facial/i`), `AdminLoginPage.test.tsx`, `InvitacionesPage.test.tsx` (`/invitación creada/i`). No hay `sr-only` en la app: **el nombre accesible es el texto visible**.
+## Al cerrar CADA sesión (obligatorio)
+1. Entrada `## Fase 2 — K# (fecha)` en `spec/todo.md` (bloques y minutos reales, notas 0–3 por pregunta, predicciones fallidas, analogías, hallazgos, qué repetir, qué sigue, qué no se verificó).
+2. Actualizar tablero (sección 7) y `ONBOARDING_HALLAZGOS.md`.
+3. Reescribir este prompt.
+4. Correcciones del alumno al mentor → `tasks/lessons.md`.
+5. Decir qué archivos quedan sin commitear y recordar el respaldo de `spec/`.
 
-### 4. Estado "Fallida" en el listado de invitaciones (opción 2 elegida por el líder)
-- Problema: `calcularEstadoInvitacion` (`apps/api/src/admin/service.ts` ~línea 152) solo mapea `rebotado` → "Rebotada"; un envío `fallido` cae en "Sin respuesta", así que ventas no distingue "el cliente no entró" de "el correo nunca salió".
-- **Primero ADR-030** en `spec/DECISIONES_ARQUITECTURA.md` (cambia HU-8/ADR-024: de 4 a 5 estados que nunca se agrupan) y actualizar `spec/SPEC_FUNCIONAL.md` HU-8. Nada de implementación silenciosa (CLAUDE.md).
-- Implementación: `EstadoInvitacionAdmin` en `packages/shared-types` (+ regenerar `openapi.json`, correr el agente `api-contract-documenter`), `calcularEstadoInvitacion`, `ETIQUETA_ESTADO`/`ESTADOS` en `InvitacionesPage.tsx` y `ConfirmacionesPage.tsx`, el filtro y el export CSV, y tests.
-- Comportamiento a preservar: el estado se calcula con la notificación de invitación **más reciente** (`LEFT JOIN LATERAL … ORDER BY creada_en DESC LIMIT 1`), así que un reenvío exitoso limpia "Fallida" — probado a mano hoy (una invitación tuvo `fallido` y luego `enviado`). Decidir con el líder qué pasa con `pendiente` (hoy también cae en "Sin respuesta") y con una invitación con confirmación + envío fallido (hoy manda el estado de la confirmación).
+## Entorno (de `tasks/lessons.md`, actualizado esta sesión)
+- `.env` no define `DATABASE_URL`: exportarla en la misma terminal. La API y los tests **no leen el `.env`**. Sin la variable, todo endpoint con DB da 500 aunque `/health` dé 200 (`SASL: client password must be a string`). Con la variable presente pero la contraseña mal, también da 500 pero con `password authentication failed` — son dos errores distintos, no confundirlos. **Sacar el valor real de `POSTGRES_PASSWORD` del propio `.env` del líder, nunca hardcodearlo en un documento ni pedirlo pegado en el chat.**
+- Tests de `apps/api`: exportar también `FRONTEND_URL`, `JWT_SECRET`, `RESEND_WEBHOOK_SECRET`. Este último debe ser **Base64 válido** (lo usa `svix`) — `changeme` (el de `.env.example`) sirve para local/test. `tsx watch` no relee `.env` **ni reconstruye `shared-types`** (H-028): `npm run build -w packages/shared-types` tras cambiarlo o en un checkout viejo.
+- El script para levantar la API es **`dev`** (`npm run dev -w apps/api`), **no** `dev:api` — nombre verificado en `apps/api/package.json`.
+- Cada terminal nueva de PowerShell necesita las variables reexportadas — no persisten entre ventanas.
+- `db:migrate`, `db:seed` y `test:db:setup` viven en `apps/api` (`-w apps/api` obligatorio desde la raíz). El seed reinicia la contraseña del admin al valor de `ADMIN_PASSWORD`. `test:db:setup` crea la base que esté en `DATABASE_URL` si no existe (idempotente) — usarlo con cuidado del nombre exacto de la base (`event_promotion_lab` en el worktree, nunca mezclar con `event_promotion_test` del repo principal).
+- PowerShell + `curl.exe -d` con JSON: las comillas escapadas (`\"`) a veces llegan mal formadas; usar el operador `--%` (stop-parsing) antes de `-i -X POST ...` cuando falle con "JSON inválido".
 
-### 5. Observabilidad del envío de correo
-- `enviarEmail` (`apps/api/src/shared/mailer.ts`) devuelve `{exito:false, error}` pero **nadie registra `error`**; solo queda `estado_envio='fallido'`. Hoy hubo que deducir la causa (API key de relleno) mirando la DB y el `.env`. Registrar el motivo (log al menos; guardarlo en `notificaciones` sería cambio de esquema → ADR/migración, preguntar).
+## Laboratorio (`../epp-lab`) — listo para usar
+Worktree en rama `epp-lab`, `npm install` hecho, `shared-types` construido, base `event_promotion_lab` migrada (11/11), `shared-types` en verde (50/50). Log de instalación fuera del repo: `C:\Users\jose_\epp-lab-npm-install.log`. Revertir experimentos **solo** con `git -C ../epp-lab checkout -- .`.
 
-## Ronda final de revisión (pedida por el líder)
+## Archivos sin commitear al cerrar la sesión (2026-09-22, sesión 3)
+`spec/PLAN_ONBOARDING.md` · `spec/ONBOARDING_HALLAZGOS.md` · `spec/next-session-prompt.md` · `spec/ESTADO_PLAN.md` · `spec/PLAN_DESARROLLO.md` · `spec/todo.md` · `tasks/lessons.md` · `README.md`. `apps/` y `packages/` sin cambios de código. Fuera del árbol de trabajo: worktree `../epp-lab`, rama `epp-lab` en `.git`.
 
-Al terminar los 5 bloques, una **última ronda completa**, en este orden — sin saltarse ninguno:
-1. `npm run test` verde en los 3 workspaces y `npm run build` limpio (ver "Entorno" abajo — los tests de `apps/api` necesitan variables exportadas).
-2. `/code-review` (nivel medium o high) sobre el diff de Gate 8. Si el líder ya commiteó Gates 6 y 7, el diff es limpio; si no, acotar por archivos y decirlo. Si el líder quiere una revisión más profunda del branch completo, `/code-review ultra` lo lanza **el líder** (el asistente no puede).
-3. `advisor` — al menos un pase de orientación antes de implementar y uno antes de dar por cerrado.
-4. Verificar con el agente `api-contract-documenter` que `packages/shared-types/openapi.json` sigue sincronizado (cambia el enum de estados).
-5. Walkthrough en `spec/todo.md` (fecha del día), `spec/ESTADO_PLAN.md` (G8 cerrado o abierto con la razón), `tasks/lessons.md` si hubo correcciones del líder.
-6. **No hacer commit.** Dejar el árbol listo y decirlo explícitamente.
+**No hagas commit.** El líder comitea cuando termine el onboarding — dejá el árbol listo y dilo explícitamente.
 
-Verificación visual: la hace el líder (no hay Chrome conectado a las sesiones del asistente salvo que se conecte). Dejar el entorno levantado y listar rutas + qué correo revisar.
-
-## Entorno — cosas que costaron tiempo hoy
-
-- `.env` **no define `DATABASE_URL`** (solo `POSTGRES_*`). Levantar la API desde un shell limpio sin exportarla da `500 "Error interno"` en cualquier endpoint con DB (`SASL: client password must be a string`). Dev: `DATABASE_URL=postgres://event_promotion:dev_local_password@localhost:5432/event_promotion`. Tests: la misma URL con `/event_promotion_test` (README, sección de tests). Además exportar `FRONTEND_URL`, `JWT_SECRET`, `RESEND_WEBHOOK_SECRET`. Considerar documentar/añadir `DATABASE_URL` de dev al `.env.example` y al README si falta.
-- La API en modo `tsx watch` **no relee el `.env`** al cambiarlo — reiniciar el proceso tras tocar `RESEND_*`.
-- Endpoint real del login admin: `POST /admin/auth/login`. Pantalla: `/admin/login`. Credenciales de dev en `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`).
-- Resend: `RESEND_FROM_EMAIL=onboarding@resend.dev` solo entrega al correo de la cuenta de Resend. **Invitar a terceros exige verificar un dominio propio** (tarea operativa del líder: Resend → Domains, registros DNS, luego `RESEND_FROM_EMAIL=algo@sudominio.com`). Hasta entonces, probar correos solo contra el correo de la cuenta.
-- Tras editar `apps/web`, Vite recarga solo; `shared-types` requiere `npm run build -w packages/shared-types` si cambia el paquete (el `dist/` lo consumen api y web).
-
-## Contexto que ya no hace falta redecidir
-
-- ADR-001 a ADR-029: no se reabren salvo contradicción real (este gate agrega ADR-030 para el estado "Fallida").
-- Gate 7 cerrado: tokens de `index.css` (paleta neutral con papel cálido), componentes de `shared/ui`, contraste AA verificado con luminancia relativa real (tabla en `spec/todo.md`). No reabrir decisiones visuales sin pedido del líder.
-- Pendientes operativos que **no** son de código y no bloquean este gate: dominio en Resend, deploy a Render (nada de Gate 2+ está desplegado), los dos juicios de negocio de Gate 5 sin resolver, milestone/issues de GitHub para G7/G8 (preguntar si existen).
-- Hallazgos de Gate 7 reportados y **no** corregidos (ahora sí caben en Gate 8 si el líder quiere): tres `<label>` hand-rolled sin `<Field>` (`CatalogoBuscador`, `ConfirmacionesPage`, `CatalogoAdminPage`), estados de carga inline sin `role="status"`, tablas de admin sin estado vacío. Ofrecerlos, no asumirlos.
-
-**No hagas commit.** El usuario comitea siempre — deja el árbol de trabajo listo y dilo explícitamente al terminar.
+## Próximo bloque
+**K1 — Arquitectura, ADRs y proceso de trabajo** (2 bloques). Objetivo: poder explicar la arquitectura en una pizarra y defender las decisiones más grandes, incluyendo las que se corrigieron. Ver sección 4 del plan para las subtareas exactas antes de empezar.

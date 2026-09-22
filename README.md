@@ -8,6 +8,8 @@ Plataforma de confirmación de asistencia para el evento anual de promociones. V
 - [`spec/ESTADO_PLAN.md`](spec/ESTADO_PLAN.md) — estado actual consolidado de cada gate
 - [`spec/todo.md`](spec/todo.md) — log de trabajo sesión a sesión
 - [`spec/next-session-prompt.md`](spec/next-session-prompt.md) — prompt listo para arrancar la próxima sesión
+- [`spec/PLAN_ONBOARDING.md`](spec/PLAN_ONBOARDING.md) — Fase 2: plan de onboarding técnico (gates de conocimiento K0–K13)
+- [`spec/ONBOARDING_HALLAZGOS.md`](spec/ONBOARDING_HALLAZGOS.md) — registro de deficiencias detectadas al revisar el código
 
 ## Estructura del monorepo
 

@@ -106,7 +106,15 @@ Pedido del líder tras cerrar Gate 7. A diferencia de Gate 7, **este gate sí ca
 
 ---
 
+## Fase 2 — Onboarding técnico (transferencia de conocimiento)
+
+Agregada el 2026-09-21 a pedido del líder, una vez cerrada la construcción (Gates 0–8). No es un gate de desarrollo: **no cambia código** y sus gates (K0–K13) miden conocimiento, no entregables de software. Estructura, reglas, rúbrica, calendario y simulacros de defensa en [`PLAN_ONBOARDING.md`](PLAN_ONBOARDING.md); deficiencias detectadas en [`ONBOARDING_HALLAZGOS.md`](ONBOARDING_HALLAZGOS.md). Cualquier mejora que salga de ese registro requiere abrir un gate de desarrollo nuevo (y un ADR si toca una decisión cerrada).
+
+---
+
 ## Estado actual
+
+> ⚠️ Esta tabla y la "Próxima acción" del final están **obsoletas** (describen el inicio del proyecto). El estado real está en `ESTADO_PLAN.md`. Registrado como hallazgo H-013; no se corrige en la Fase 2.
 
 | Gate | Estado |
 |---|---|

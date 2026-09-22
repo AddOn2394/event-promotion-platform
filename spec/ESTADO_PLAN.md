@@ -1,10 +1,22 @@
 # Estado del Plan — Event Promotion Platform
 
-> Última actualización: 2026-09-19 — **Gate 7 cerrado** (el líder verificó las pantallas en navegador). **Gate 8** (formato numérico, comunicación profesional, estado "Fallida") **implementado, abierto hasta la verificación visual del líder**. Ver `spec/todo.md`, `spec/PLAN_DESARROLLO.md` v1.5 y `spec/next-session-prompt.md`.
+> **2026-09-21 — Fase 2 (Onboarding técnico) definida**: ver `spec/PLAN_ONBOARDING.md` y `spec/ONBOARDING_HALLAZGOS.md`. Lo que sigue describe la **Fase 1** (Gates 0–8) y tiene desfases conocidos con el código y el README (hallazgo H-014).
+>
+> Última actualización de la Fase 1: 2026-09-19 — **Gate 7 cerrado** (el líder verificó las pantallas en navegador). **Gate 8** (formato numérico, comunicación profesional, estado "Fallida") **implementado, abierto hasta la verificación visual del líder**. Ver `spec/todo.md`, `spec/PLAN_DESARROLLO.md` v1.5 y `spec/next-session-prompt.md`.
 
 ---
 
 ## 1. Estado general
+
+> ### Correcciones vigentes (2026-09-21) — leer antes de los párrafos por gate
+>
+> Los párrafos de abajo se escribieron gate por gate y conservan los "pendientes" de su época. Tres hechos **verificados el 2026-09-21** los superan:
+>
+> 1. **Gate 2 en adelante SÍ está desplegado en Render.** `GET /health` → 200, la web → 200 y `POST /admin/auth/login` con credenciales inválidas → **401** (no 404 ni 500): el código de Gate 2+ corre y la base responde. Todos los "sigue sin desplegar en Render" de abajo están obsoletos. *No se verificó qué commit exacto corre en producción.*
+> 2. **Uno de los "dos juicios de negocio de Gate 5" ya está resuelto**: ADR-028 e implementado en `apps/api/src/auth/service.ts:62-69` (un login con código correcto y evento terminado no cuenta como intento fallido). Queda el otro: la invalidación de `confirmacion-propia` tampoco es deuda, ya se invalida en `useEditarConfirmacion`/`useCancelarConfirmacion`.
+> 3. **Gate 8**: la última entrada de `todo.md` (2026-09-20) lo describe implementado con correcciones posteriores y `/code-review ultra` aplicado; **no consta** en los documentos que el líder haya registrado su verificación visual, así que "cerrado" no se afirma aquí.
+>
+> **Resuelto por el líder el 2026-09-21**: el dominio de correo es propio, está verificado, probado y funcional (no era el sandbox `onboarding@resend.dev`; el README acertaba, ver H-012). La reescritura completa de este documento sigue pendiente (H-014).
 
 Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder del proyecto sobre identidad de cliente, extensibilidad del descuento y trazabilidad de email). `spec/DECISIONES_ARQUITECTURA.md`, `spec/SPEC_FUNCIONAL.md` y `spec/PLAN_DESARROLLO.md` están aprobados y commiteados. GitHub Issues (36) + 7 milestones reflejan el reparto Equipo 1 (frontend) / Equipo 2 (backend) historia por historia. El scaffold del monorepo (`apps/web`, `apps/api`, `packages/shared-types`) está completo y `.claude/CLAUDE.md` fue reescrito para React/Node/Express.
 
@@ -48,6 +60,16 @@ Entrevista spec-driven completada (7+ rondas, incluyendo correcciones del líder
 
 ---
 
+### Fase 2 — Onboarding técnico (transferencia de conocimiento)
+
+Definida el 2026-09-21 a pedido del líder: capacitarlo para dominar y **defender** el código ante una entrevista técnica. **No desarrolla nada**; las deficiencias que aparezcan se anotan en `ONBOARDING_HALLAZGOS.md`. 14 gates de conocimiento (K0–K13), 40 bloques de ~90 min en 10 días. Detalle, reglas, rúbrica y simulacros en `spec/PLAN_ONBOARDING.md`.
+
+| Gate | Estado |
+|---|---|
+| K0–K13 | **Definidos, ninguno ejecutado** — el tablero de progreso vive en `PLAN_ONBOARDING.md` sección 7. **Pendiente antes de K0**: rehacer el calendario intercalando los cinco carriles del panel (decidido por el líder el 2026-09-21; ver `spec/next-session-prompt.md`). Nada de la fase está commiteado hasta que termine el onboarding (decisión del líder). |
+
+---
+
 ## 3. Decisiones cerradas (no reabrir sin nueva evidencia — ver ADR completo en `DECISIONES_ARQUITECTURA.md`)
 
 - Stack: React + Node/Express + TypeScript, monorepo con npm workspaces (ADR-001, ADR-002, ADR-020).
@@ -77,6 +99,8 @@ Ninguno. Los 3 gates abiertos originales de la v1.0 y las 3 dudas planteadas por
 
 ## 5. Próximo paso
 
+**Fase 2 — arrancar por K0** (entrevista de calibración, entorno funcionando, diagnóstico inicial y pitch v1). El prompt de arranque está en `spec/next-session-prompt.md`. Lo que sigue en esta sección es el estado operativo de la Fase 1, anterior a esa decisión.
+
 **Gate 8 implementado (2026-09-19), abierto.** Falta que el líder verifique pantallas y correos reales (rutas y qué correo mirar en `spec/todo.md`, última entrada) y decida el commit. No hay commit hecho por el asistente. Opcional: `/code-review ultra` sobre Gates 6-8 (lo lanza el líder).
 
-Aparte, sigue abierto (operativo, no de código): (a) ninguna rama posterior a Gate 1 está desplegada en Render; (b) **verificar un dominio propio en Resend** y cambiar `RESEND_FROM_EMAIL` — con `onboarding@resend.dev` Resend solo entrega al correo de la cuenta de Resend, así que hoy no se puede invitar a terceros. Si el usuario quiere desplegar en algún momento: confirmar en el dashboard de Render que las variables de Gate 2-6 (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`, `RESEND_WEBHOOK_SECRET`) están seteadas, registrar el webhook en el dashboard de Resend, y desplegar la rama actual.
+Aparte, sigue abierto (operativo, no de código; **corregido 2026-09-21**: el punto (a) original —"ninguna rama posterior a Gate 1 está desplegada"— es falso, ver la caja de correcciones al inicio de la sección 1): (a) confirmar qué commit corre en producción; (b) ~~verificar un dominio propio en Resend~~ **(resuelto 2026-09-21: el líder confirmó dominio verificado, probado y funcional)** y cambiar `RESEND_FROM_EMAIL` — con `onboarding@resend.dev` Resend solo entrega al correo de la cuenta de Resend, así que hoy no se puede invitar a terceros. Si el usuario quiere desplegar en algún momento: confirmar en el dashboard de Render que las variables de Gate 2-6 (`JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FRONTEND_URL`, `COOKIE_SECURE`, `RESEND_WEBHOOK_SECRET`) están seteadas, registrar el webhook en el dashboard de Resend, y desplegar la rama actual.
